@@ -33,31 +33,38 @@ It includes all necessary js- and css-files and instantiates the `HelloWorld` co
 
 `SampleApp.html`: The application´s main page.
 
-    <!doctype html>
-    <html ng-app="SampleApp">
-        <head>
-            <title>Sample App</title>
-            <link rel="stylesheet" type="text/css" href="SampleApp.css">
-            <script src="../../../lib/angular.js"></script>
-            <script src="../ui-components.js"></script>
-            <script src="SampleApp.js"></script>
-            <script src="example1/HelloWorld.js"></script>
-        </head>
-        <body>
-            <hello-world salutation="'Hello'" message="'World'"/>
-        </body>
-    </html>
+    
+```html
+<!doctype html>
+<html ng-app="SampleApp">
+    <head>
+        <title>Sample App</title>
+        <link rel="stylesheet" type="text/css" href="SampleApp.css">
+        <script src="../../../lib/angular.js"></script>
+        <script src="../ui-components.js"></script>
+        <script src="SampleApp.js"></script>
+        <script src="example1/HelloWorld.js"></script>
+    </head>
+    <body>
+        <hello-world salutation="'Hello'" message="'World'"/>
+    </body>
+</html>
+```
 
 `SampleApp.js`: Defines the angular app-module with the required the depending modules.
 
+```JavaScript
     angular.module('SampleApp', ['ng', 'ui', 'HelloWorld']);
+```
 
 `SampleApp.css`: Have a little style for the component.
 
+```css
     .HelloWorld {
         border: 1px solid green;
         padding: 5px;
     }
+```
 
 The `HelloWorld` component resides in the `example1` folder and has two model-properties `salutation` and `message` as defined by the`ui.component` call.
 The controller of the component is defined by the `HelloWorldController` function.
@@ -69,6 +76,7 @@ It is very similar to angular´s [$scope](http://docs.angularjs.org/guide/scope)
 
 `HelloWorld.js`: The component-definition with model and controller
 
+```JavaScript
     ui.component('example1', 'HelloWorld', 'helloWorld', {
         salutation:'=',
         message:'='
@@ -76,14 +84,17 @@ It is very similar to angular´s [$scope](http://docs.angularjs.org/guide/scope)
         comp.salutation = "";
         comp.message = "";
     }]);
+```
 
 The `comp` variable is then available in the view of the component and gives access to the model-values.
 
 `HelloWorld.html`: The view-definition of the component with model binding.
 
+```html
     <span class="HelloWorld">
         {{comp.salutation}} {{comp.message}}.
     </span>
+```
 
 
 
