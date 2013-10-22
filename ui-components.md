@@ -79,7 +79,7 @@ It is very similar to angular´s [$scope](http://docs.angularjs.org/guide/scope)
 `HelloWorld.js`: The component-definition with model and controller
 
 ```JavaScript
-    ui.component('example1', 'HelloWorld', 'helloWorld', {
+    ui.component('example1', 'HelloWorld', {
         salutation:'=',
         message:'='
     }, ['comp', function HelloWorldController(comp) {
