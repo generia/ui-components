@@ -1,4 +1,4 @@
-# Ui-Components
+# ui-components
 
 > Build [angular](http://angularjs.org) applications from a business point of view.
 
