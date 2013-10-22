@@ -17,7 +17,7 @@ The following figure gives an overview how model, view and controller work toget
 
 ![MVC-Pattern](img/mvc-pattern.png)
 
-## Example-1: `SampleApp` Application using `HelloWorld` Component ([Run](../apps/sampleapp/SampleApp.html))
+## Example-1: `SampleApp` Application using `HelloWorld` Component ([Run](http://www.generia.de/ui-components/apps/sampleapp/SampleApp.html))
 
 The first example defines a simple `HelloWorld` component that exposes two properties as its interface.
 This component is used then in the `SampleApp` angular application. This application consists of the following files:
@@ -146,12 +146,6 @@ The D component uses the P component and passes two instances q1 and a2 of the Q
 For displaying the D component a component-tree is built at runtime as shown in the previous figure.
 By this every node in the tree gets an absolute path that is built from the ids of the respective components.
 
-<table>
-	<tr>
-		<th>Path</th><th>Type</th><th>Declaring Component</th><th>Parent Component</th>
-	</tr>
-</table>
-
 | Path | Type | Declaring Component | Parent Component |
 |------|------|---------------------|------------------| 
 | d	| D	 | - | - |
@@ -183,7 +177,7 @@ This can even happen in a nested way. Due to this it is always necessary that a 
 For accessing the declaring component in a view-declaration the special `comp` variable is provided that always hold the reference to the declaring component of the view-declaration at hand.
 
 
-## Example-2: `ContactApp` Application ([Run](../apps/contactapp/ContactApp.html))
+## Example-2: `ContactApp` Application ([Run](http://www.generia.de/ui-components/apps/contactapp/ContactApp.html))
 
 The contact application example was taken from the [sample](https://github.com/angular-ui/ui-router/tree/master/sample) of the [ui-router](https://github.com/angular-ui/ui-router) project.
 While the ui-router uses an centralized state-machine to keep track of the current view state, the ui-components approach favours a decentralized state encapsulated in reusable components.
