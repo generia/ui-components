@@ -15,7 +15,7 @@ Furthermore the view describes how the component is composed by other sub-compon
  
 The following figure gives an overview how model, view and controller work together via event- and value-bindings and it shows their overall integration into a business-application.
 
-![MVC-Pattern](img/mvc-pattern.png)
+![MVC-Pattern](https://raw.github.com/generia/ui-components/master/doc/img/mvc-pattern.png)
 
 ## Example-1: `SampleApp` Application using `HelloWorld` Component ([Run](http://www.generia.de/ui-components/apps/sampleapp/SampleApp.html))
 
@@ -135,7 +135,7 @@ This parent-child relation in now used to organize the component-interaction acc
 The basic idea is that the communication between components always goes along the component-tree.
 By this the parent-component takes the role of the mediator for all its child-components as shown in the following figure.
 
-![Mediator-Function](img/mediator-function.png)
+![Mediator-Function](https://raw.github.com/generia/ui-components/master/doc/img/mediator-function.png)
 
 The child-components do not know each other, only the common parent-component takes care for dispatching values and events to the relevant child-components.
 Using this approach every sub-tree of the component-tree is always self-contained. All incoming and outgoing dependencies are controlled by the root-component of a sub-tree.
@@ -152,7 +152,7 @@ By using component-parameters we get two views on the component-tree: the static
 Here, three view-declarations are shown for the components P, Q and D. The P component can take component-parameters an inserts them for the placeholder marked with `<children>` into it's sub-tree.
 The D component uses the P component and passes two instances q1 and a2 of the Q component as component-parameter. This is shown in the following figure.
 
-![Component-Identification](img/component-identification.png)
+![Component-Identification](https://raw.github.com/generia/ui-components/master/doc/img/component-identification.png)
  
 For displaying the D component a component-tree is built at runtime as shown in the previous figure.
 By this every node in the tree gets an absolute path that is built from the ids of the respective components.
