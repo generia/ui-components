@@ -1,4 +1,4 @@
 ui-components
 =============
 
-build component-based angular applications
+Build component-based angular applications using a business-driven approach.

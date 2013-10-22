@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en" ng-app="ContactApp">
+<head>
+    <meta charset="utf-8">
+    <title>Contact App</title>
+
+    <link rel="stylesheet" type="text/css" href="bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="ContactApp.css">
+
+    <script src="http://code.angularjs.org/1.2.0-rc.2/angular.js"></script>
+    <script src="http://code.angularjs.org/1.2.0-rc.2/angular-animate.js"></script>
+    <script src="../../ui-components.js"></script>
+    <script src="ContactApp.js"></script>
+    <script src="navigation/Navigation.js"></script>
+    <script src="navigation/Menu.js"></script>
+    <script src="content/ContactList.js"></script>
+    <script src="content/Home.js"></script>
+    <script src="content/About.js"></script>
+    <script src="content/Contacts.js"></script>
+    <script src="content/contacts/ContactNav.js"></script>
+    <script src="content/contacts/ContactList.js"></script>
+    <script src="content/contacts/ContactDetail.js"></script>
+    <script src="services/ContactService.js"></script>
+    <script src="services/RandomService.js"></script>
+
+</head>
+<body>
+    <navigation uid="navi" title="'ui-components'" info="'Status-Info: ' + comp.page" on-home="comp.page = 'home'">
+        <menu label="'Contacts'" active="comp.page=='contacts'" on-click="comp.page = 'contacts'"></menu>
+        <menu label="'About'"    active="comp.page=='about'"    on-click="comp.page = 'about'"></menu>
+    </navigation>
+
+    <div class="container page" style="margin-top:60px">
+    	<div class="animate-page" ng-switch="comp.page">
+	        <div class="row" ng-switch-default="home">
+	            <home></home>
+	        </div>
+	        <div class="row" ng-switch-when="contacts">
+	            <contacts></contacts>
+	        </div>
+	        <div class="row" ng-switch-when="about">
+	            <about></about>
+	        </div>
+        </div>
+    </div>
+    <hr>
+    <pre><button class="btn" onclick="ui.logScopes()">Log Scopes</button></pre>
+</body>
+</html>

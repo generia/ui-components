@@ -1,0 +1,23 @@
+<div class="ContactDetail">
+    <h2>{{comp.contact.name}} {{comp.uiName}}</h2>
+    <ul>
+        <li ng-repeat="item in comp.contact.items">
+            <a ng-click="comp.show(item)">{{item.type}}</a>
+        </li>
+    </ul>
+    <div class="page">
+    <div class="animate-page" ng-switch="comp.state">
+        <div ng-switch-when="show">
+            <hr>
+            <h4>{{comp.selectedItem.type}} <button class="btn" ng-click="comp.edit()">Edit</button></h4>
+            <div>{{comp.selectedItem.value}}</div>
+        </div>
+        <div ng-switch-when="edit">
+            <hr>
+            <h4>{{item.type}} <button class="btn" ng-click="comp.done()">Done</button></h4>
+            <div><input type="text" ng-model="comp.selectedItem.value" /></div>
+        </div>
+        <small class="muted" ng-switch-default>Click on a contact item to view and/or edit it.</small>
+    </div>
+    </div>
+</div>

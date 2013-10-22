@@ -1,0 +1,16 @@
+<div class="ContactNav">
+    <div class="pa-sidebar well well-small">
+        <ul class="nav nav-list">
+            <li ng-class="{ active: comp.selectedContact == null }"><a ng-click="comp.selectedContact = null; comp.onSelect(null)">All Contacts</a></li>
+            <li class="nav-header">Top Contacts</li>
+            <li ng-repeat="contact in comp.contacts | limitTo:2" ng-class="{ active: contact == comp.selectedContact }">
+                <a ng-click="comp.selectedContact = contact; comp.onSelect(contact)">{{contact.name}}</a>
+            </li>
+        </ul>
+        <hr>
+        <button class="btn" ng-click="comp.goToRandom()">Show random contact</button>
+
+        <!-- TODO: ui-show does not work here -->
+        <hr ng-show="comp.menuTip != null"/><small class="muted" ng-bind="comp.menuTip" ui-show="comp.menuTip != null"></small>
+    </div>
+</div>

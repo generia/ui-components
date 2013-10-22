@@ -1,0 +1,11 @@
+<div class="Navigation">
+    <div class="navbar navbar-fixed-top">
+        <div class="navbar-inner">
+            <div class="container">
+                <a class="brand" ng-click="comp.onHome()" ng-bind="comp.title"></a>
+                <ul class="nav" ng-transclude></ul>
+                <p class="navbar-text pull-right" ng-bind="comp.uiName + ' ' + comp.info"></p>
+            </div>
+        </div>
+    </div>
+</div>

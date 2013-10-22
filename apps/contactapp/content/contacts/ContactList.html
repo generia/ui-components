@@ -1,0 +1,8 @@
+<div class="ContactList">
+    <h2>All Contacts</h2>
+    <ul>
+        <li ng-repeat="contact in comp.contacts">
+            <a ng-click="comp.onSelect(contact)">{{contact.name}}</a>
+        </li>
+    </ul>
+</div>
