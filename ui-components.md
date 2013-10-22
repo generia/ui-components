@@ -1,5 +1,7 @@
 # Ui-Components
 
+> Build angular applications from a business point of view.
+
 Ui-components serve as a central building block for constructing angular applications.
 They are based on the widget idea presented in [Creating Components](http://docs.angularjs.org/guide/directive#creating-components) of the [directive](http://docs.angularjs.org/guide/directive) tutorial.
 
