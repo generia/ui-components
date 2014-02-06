@@ -137,7 +137,6 @@ var ui = (function(angular){
 	                if ((key == '$scope' || key == '$isolateScope') && !angular.isUndefined(value)) {
 	                    value.element = result;
 	                    value.declaredUuid = getUuid(result);
-	                    var declaringComponent = null;
 	                    if (value.declaredUuid) {
 	                        appRootScope.uuidScopeMap[value.declaredUuid] = value;
 	                        value.declaringUuid = appRootScope.declaredUuidMap[value.declaredUuid];
@@ -145,9 +144,10 @@ var ui = (function(angular){
 	                        value.declaringUuid = value.$parent.declaredUuid;
 	                    }
                         value.declaringScope = appRootScope.uuidScopeMap[value.declaringUuid];
-                        if (value.declaringScope) {
-                            declaringComponent = value.declaringScope.element;
-                        }
+	                    //var declaringComponent = null;
+                        //if (value.declaringScope) {
+                        //    declaringComponent = value.declaringScope.element;
+                        //}
 	                    //console.info("attaching scope", value, " to ", result, "uuid", getUuid(result), "declaring-uuid", getUuid(declaringComponent), "declaring-scope", value.declaringScope, "declaring-component", declaringComponent, "declared-data", result.data(), "declaring-data", (declaringComponent ? declaringComponent.data() : 'none'));
 
 	                } else {
@@ -371,15 +371,6 @@ var ui = (function(angular){
 		angular.element(node).attr(uuidAttr, uuid);
 	}
 
-	function getMetadataNode(node) {
-		var elem = angular.element(node);
-		var children = elem.children();
-		if (children.length == 1) {
-			//return angular.element(children[0]);
-		}
-		return elem;
-	}
-
 	function registerDeclaredComponent(node, attrs) {
 	    var declaringComponent = currentDeclaringComponent();
 	    if (declaringComponent == null) {
@@ -480,26 +471,6 @@ var ui = (function(angular){
 	    }
 	}
 
-
-	function attachDeclaringScopes() {
-	    appRootElement.find('.ng-scope').each(function(i, elem) {
-	        var scope = jQuery(elem).data('$scope');
-	        var uuid = getUuid(elem);
-	        var declaringComponent = getDeclaringComponent(elem);
-	        var declaringUuid = getUuid(declaringComponent);
-	        var declaringScope = declaringComponent.data('$scoope');
-	        //console.log("elem", i,  elem, "declared-uuid", uuid, "declaring-uuid", declaringUuid, declaringComponent, "scope", scope, "declaring-scope", declaringScope);
-	        //appRootScope.uuidScopeMap[uuid] = scope;
-	    });
-
-	    angular.forEach(appRootScope.uuidScopeMap, function(scope, uuid){
-	        var declaringUuid = appRootScope.declaredUuidMap[uuid];
-	        var declaringScope = appRootScope.uuidScopeMap[declaringUuid];
-	        //scope.declaringScope = declaringScope;
-	        //console.log("declared-uuid", uuid,  "declaring-uuid", declaringUuid,  "scope", scope, "declaring-scope", declaringScope);
-	    });
-	}
-
 	function decorateController(name, $controller, controller) {
 	    return ['$scope', function UiComponentController($scope) {
 	        $scope.comp = {
@@ -543,6 +514,9 @@ var ui = (function(angular){
 	                	templateUrl = templateProvider.getTemplateUrl(pkg, name, tAttrs);
 	                }
 	                templateUrl = encodeUuid(uuid, templateUrl);
+	                //$compileNode.data('templateUrl', templateUrl);
+	                //$compileNode.data('templateAttr', tAttrs);
+	                //$compileNode.attr('tmplUrl', templateUrl);
 	                //console.log(name + "-template-url: ", $compileNode, tAttrs, "declared-component", getUuid($compileNode), $compileNode, "declaring-component", declaringComponent, getUuid(declaringComponent));
 	                declaringComponentHolder.setDeclaringComponent(templateUrl, $compileNode);
 	                return templateUrl;
