@@ -49,7 +49,7 @@ var ui = (function(angular){
 	        var parse = function uiParse(expression) {
 	            var parts = decodeUuid(expression);
 	            if (parts.uuid) {
-	              //  $log.info("parse-function BEG:", expression, parts);
+	                //$log.info("parse-function BEG:", expression, parts);
 	            }
 	            var exprFn = $delegate(parts.expr);
 	            var exprAssignFn = exprFn.assign;
@@ -64,7 +64,7 @@ var ui = (function(angular){
 	                    var value = exprFn(declaringScope, locals);
 	                    if (parts.uuid) {
 	                    }
-	                  //  $log.info("parse-eval-function END", expression, scope, locals, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
+	                    //$log.info("parse-eval-function END", expression, scope, locals, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
 	                    return value;
 	                } catch (e) {
 	                    $log.error("parse-eval-function ERR", expression, scope, locals, "declared-uuid", parts.uuid, "declaring-scope", declaringScope, e);
@@ -87,7 +87,7 @@ var ui = (function(angular){
 	                };
 	            }
 	            if (parts.uuid) {
-	               // $log.info("parse-function END:", expression, exprFn, exprFn.assign, "assign", exprAssignFn, wrappedFn.assign);
+	                //$log.info("parse-function END:", expression, exprFn, exprFn.assign, "assign", exprAssignFn, wrappedFn.assign);
 	            }
 	            return wrappedFn;
 	        };
@@ -134,18 +134,20 @@ var ui = (function(angular){
 	            elementProto.data = function uiData(key, value) {
 	                //console.info("data BEG", "key", key, "value", value, "this", this);
 	                var result = data.apply(this, arguments);
-	                if (key == '$scope' && !angular.isUndefined(value)) {
+	                if ((key == '$scope' || key == '$isolateScope') && !angular.isUndefined(value)) {
 	                    value.element = result;
 	                    value.declaredUuid = getUuid(result);
 	                    var declaringComponent = null;
 	                    if (value.declaredUuid) {
 	                        appRootScope.uuidScopeMap[value.declaredUuid] = value;
 	                        value.declaringUuid = appRootScope.declaredUuidMap[value.declaredUuid];
-	                        value.declaringScope = appRootScope.uuidScopeMap[value.declaringUuid];
-	                        if (value.declaringScope) {
-	                            declaringComponent = value.declaringScope.element;
-	                        }
+	                    } else {
+	                        value.declaringUuid = value.$parent.declaredUuid;
 	                    }
+                        value.declaringScope = appRootScope.uuidScopeMap[value.declaringUuid];
+                        if (value.declaringScope) {
+                            declaringComponent = value.declaringScope.element;
+                        }
 	                    //console.info("attaching scope", value, " to ", result, "uuid", getUuid(result), "declaring-uuid", getUuid(declaringComponent), "declaring-scope", value.declaringScope, "declaring-component", declaringComponent, "declared-data", result.data(), "declaring-data", (declaringComponent ? declaringComponent.data() : 'none'));
 
 	                } else {
@@ -521,7 +523,7 @@ var ui = (function(angular){
 	            ngScope[attr] = spec;
 	        }
 	    });
-	    module.directive(tag, ['declaringComponentHolder', '$controller', function(declaringComponentHolder, $controller){
+	    module.directive(tag, ['declaringComponentHolder', '$controller', '$injector', function(declaringComponentHolder, $controller, $injector){
 	        return {
 	            restrict: 'E',
 	            replace: true,
@@ -535,10 +537,12 @@ var ui = (function(angular){
 	                        tAttrs[key] = encodeUuid(uuid, tAttrs[key]);
 	                    }
 	                });
-	                var templateUrl = encodeUuid(uuid, pkg + '/' + name + '.html');
-	                //$compileNode.data('templateUrl', templateUrl);
-	                //$compileNode.data('templateAttr', tAttrs);
-	                //$compileNode.attr('tmplUrl', templateUrl);
+	                var templateUrl = pkg + '/' + name + '.html';
+	                if ($injector.has('templateProvider')) {
+	                	var templateProvider = $injector.get('templateProvider');
+	                	templateUrl = templateProvider.getTemplateUrl(pkg, name, tAttrs);
+	                }
+	                templateUrl = encodeUuid(uuid, templateUrl);
 	                //console.log(name + "-template-url: ", $compileNode, tAttrs, "declared-component", getUuid($compileNode), $compileNode, "declaring-component", declaringComponent, getUuid(declaringComponent));
 	                declaringComponentHolder.setDeclaringComponent(templateUrl, $compileNode);
 	                return templateUrl;
@@ -568,6 +572,17 @@ var ui = (function(angular){
 
 	function encodeComponentAttrName(attrName) {
 	    return attrName;
+	}
+	
+	function compileFns(preFn, postFn) {
+		var compileFn = {
+			pre: preFn,
+			post: postFn
+		};
+		// attach isolateScope flag
+		compileFn.pre.isolateScope = true;
+		compileFn.post.isolateScope = true;
+		return compileFn;
 	}
 
 	function getAttrDirective(directiveName, attrName, mode) {
@@ -665,18 +680,21 @@ var ui = (function(angular){
 	                var attr = attrName;
 	                var expr = tAttrs[directiveName];
 	                //console.log("compile-" + attr, tElement, tAttrs, transclude, attr, expr);
-	                return {
-	                    pre: function uiAttrPreLink(scope, iElement, iAttrs, controller) {
-	                        //console.log("link-" + attr + "-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
+	                return compileFns(
+	                    function uiAttrPreLink(scope, iElement, iAttrs, controller) {
+	                    	if (scope) {
+		                        //var ds = scope.declaringScope;
+		                        //console.log("link-" + attr + "-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
+	                    	}
 	                    },
-	                    post: function uiAttrPostLink(scope, iElement, iAttrs, controller) {
-	                        //console.log("link-" + attr + "-post", scope, tElement, tAttrs, controller);
-	                        var ds = scope.declaringScope;
-	                        bindScopes($parse, $log, attr, expr, mode, scope, ds);
-	                        //var expr = iAttrs[attr];
-	                        //scope.$evalAsync(expr);
+	                    function uiAttrPostLink(scope, iElement, iAttrs, controller) {
+	                    	if (scope) {
+		                        var ds = scope.declaringScope;
+		                        //console.log("link-" + attr + "-post", scope, tElement, tAttrs, controller, "declaring-scope", ds);
+		                        bindScopes($parse, $log, attr, expr, mode, scope, ds);
+	                    	}
 	                    }
-	                };
+	                );
 	            }
 	        };
 	    }];
@@ -687,10 +705,10 @@ var ui = (function(angular){
 	        restrict: 'A',
 	        compile: function(tElement, tAttrs, transclude) {
 	            //console.log("compile-uid", tElement, tAttrs, transclude);
-	            return {
-	                pre: function uiUidPreLink(scope, iElement, iAttrs, controller) {
+	            return compileFns(
+	                function uiUidPreLink(scope, iElement, iAttrs, controller) {
 	                },
-	                post: function uiUidPostLink(scope, iElement, iAttrs, controller) {
+	                function uiUidPostLink(scope, iElement, iAttrs, controller) {
 	                    var ds = scope.declaringScope;
 	                    var uid = iAttrs.uid;
 	                    var comp = ui.getComp(scope);
@@ -698,7 +716,7 @@ var ui = (function(angular){
 	                    ds[uid] = comp;
 	                    //console.log("link-uid-post", scope, tElement, tAttrs, controller);
 	                }
-	            };
+	            );
 	        }
 	    };
 	});
@@ -711,26 +729,28 @@ var ui = (function(angular){
 	            var uuid = getUuid(tElement);
 	            var uiExpr = encodeUuid(uuid, expr);
 	            //console.log("compile-uiShow", tElement, tAttrs, transclude, expr, uuid, uiExpr, $animate);
-	            return {
-	                pre: function(scope, iElement, iAttrs, controller) {
+	            return compileFns(
+	                function(scope, iElement, iAttrs, controller) {
 	                    //console.log("link-uid-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
 	                },
-	                post: function(scope, iElement, iAttrs, controller) {
-	                    var ds = scope.declaringScope;
-	                    //console.log("ui-show-post", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds);
-	                    scope.$watch(uiExpr, function uiShowWatcher(value) {
-	                      //  console.log("ui-show-watch", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds, "->", value);
-	                        if (value) {
-	                            //iElement.removeClass("ng-hide");
-	                        	$animate.removeClass(iElement, 'ng-hide');
-	                        } else {
-	                        	$animate.addClass(iElement, 'ng-hide');
-	                            //iElement.addClass("ng-hide");
-	                        }
-	                        return value;
-	                    });
+	                function(scope, iElement, iAttrs, controller) {
+	                	if (scope) {
+		                    //var ds = scope.declaringScope;
+		                    //console.log("ui-show-post", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds);
+		                    scope.$watch(uiExpr, function uiShowWatcher(value) {
+		                      //  console.log("ui-show-watch", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds, "->", value);
+		                        if (value) {
+		                            //iElement.removeClass("ng-hide");
+		                        	$animate.removeClass(iElement, 'ng-hide');
+		                        } else {
+		                        	$animate.addClass(iElement, 'ng-hide');
+		                            //iElement.addClass("ng-hide");
+		                        }
+		                        return value;
+		                    });
+	                	}
 	                }
-	            };
+	            );
 	        }
 	    };
 	}]);
@@ -763,7 +783,7 @@ var ui = (function(angular){
 		getComp: function(scope) {
 		    var comp = scope.comp;
 		    var uuid = scope.declaredUuid;
-		    while (angular.isUndefined(comp) && uuid == scope.$parent.declaredUuid) {
+		    while (angular.isUndefined(comp) && scope.$parent != null && uuid == scope.$parent.declaredUuid) {
 		        scope = scope.$parent;
 		        comp = scope.comp;
 		    }
