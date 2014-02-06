@@ -2,6 +2,9 @@ ui.component('content/contacts', 'ContactList', {
 	menuTip:'@',
     onSelect:'~'
 }, ['comp', '$log', 'contactService', function(comp, $log, contactService) {
-    comp.contacts = contactService.all();
+    contactService.all().then(function (resp) {
+    	//console.log("all-resp", resp);
+        comp.contacts = resp.data.contacts;
+    });
 	//$log.info("contact-list-controller: ", comp);
 }]);

@@ -3,13 +3,13 @@ angular.module('ContactService', [])
     // A RESTful factory for retrieving contacts from 'contacts.json'
     .factory('contactService', ['$http', function ($http, utils) {
         var path = 'services/contacts.json';
-        var contacts = $http.get(path).then(function (resp) {
-            return resp.data.contacts;
-        });
-
         var factory = {};
         factory.all = function () {
-            return contacts;
+            return $http({
+                url:path,
+                method:"GET",
+                headers:{'Content-Type':'application/json'}
+            });
         };
         factory.get = function (id) {
             return contacts.then(function(){
@@ -38,7 +38,5 @@ angular.module('ContactService', [])
                 } while (randKey == currentKey);
                 return randKey;
             }
-
         };
-
     });
