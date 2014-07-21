@@ -550,7 +550,13 @@ var ui = (function(angular){
 	            '$scope': $scope,
 	            'comp': $scope.comp
 	        };
+	        //console.log("decorateController:", name, controller);
+	        
+	        // initialize comp
 	        $controller(controller, locals);
+	        
+	        // bind attribute expressions
+	        controller._bindUiAttrs($scope);
 	    }];
 	}
 	function createComponent(pkg, name, tag, attrs, controller, requires) {
@@ -558,19 +564,30 @@ var ui = (function(angular){
 	    var module = angular.module(name, requires || []);
 	    angular.forEach(attrs, function(spec, attr) {
 	        if (spec == '=' || spec == '&' || spec == '~') {
-	            var directiveName = encodeComponentAttrName(attr);
-	            module.directive(directiveName, getAttrDirective(directiveName, attr, spec));
+	           // handled in controller._bindUiAttrs 
 	        } else {
 	            ngScope[attr] = spec;
 	        }
 	    });
-	    module.directive(tag, ['declaringComponentHolder', '$controller', '$injector', function(declaringComponentHolder, $controller, $injector){
+	    module.directive(tag, ['declaringComponentHolder', '$controller', '$injector', '$parse', '$log', function(declaringComponentHolder, $controller, $injector, $parse, $log){
 	        return {
 	            restrict: 'E',
 	            replace: true,
 	            transclude: true,
 	            scope: ngScope,
 	            templateUrl: function uiTemplateUrl($compileNode, tAttrs) {
+	            	controller._bindUiAttrs = function(scope) {
+	            		var element = scope.element;
+	            	    angular.forEach(attrs, function(spec, attr) {
+	            	        if (spec == '=' || spec == '&' || spec == '~') {
+	            	        	var directiveName = tAttrs.$attr[attr];
+	            	            var expr = element.attr(directiveName);
+	            	            bindScopes($parse, $log, directiveName, attr, expr, spec, scope, scope.declaringScope);
+	            	        } else {
+	            	        	// handled by createComponent
+	            	        }
+	            	    });
+	            	};
 	                /*var declaringComponent = */registerDeclaredComponent($compileNode, tAttrs);
 	                var uuid = getUuid($compileNode);
 	                angular.forEach(ngScope, function(value, key){
@@ -626,120 +643,93 @@ var ui = (function(angular){
 		return compileFn;
 	}
 
-	function getAttrDirective(directiveName, attrName, mode) {
-	    function bindScopes($parse, $log, attr, expr, mode, scope, declaringScope) {
-	        var lastValue;
-	        var comp = getComp(scope);
-	        if (angular.isUndefined(comp)) {
-	            $log.warn("bindScopes: comp not defined for directive ", directiveName,attr, expr, scope, declaringScope);
-	        }
-	        var parentGetOrig = $parse(expr);
-	        var parentSetOrig = parentGetOrig.assign || function() {
-	            // reset the change, or we will throw this exception on every $digest
-	            lastValue = comp[attr] = parentGet(declaringScope);
-	            throw $compileMinErr('nonassign', "Expression '{0}' used with directive '{1}' is non-assignable!",
-	                attr, "directive: " + directiveName);
-	        };
-	        var parentGet = function uiParentGet(scope) {
-	            var value = parentGetOrig(scope);
-	            // $log.log("get ", attr, " in ", scope, " -> ", value);
-	            return value;
-	        };
-	        switch (mode) {
+    function bindScopes($parse, $log, directiveName, attr, expr, mode, scope, declaringScope) {
+        var lastValue;
+        var comp = getComp(scope);
+        if (angular.isUndefined(comp)) {
+            $log.warn("bindScopes: comp not defined for directive ", directiveName,attr, expr, scope, declaringScope);
+        }
+        //console.log("bindScopes: ", attr, expr, directiveName, mode, scope, declaringScope, comp);
+        var parentGetOrig = $parse(expr);
+        var parentSetOrig = parentGetOrig.assign || function() {
+            // reset the change, or we will throw this exception on every $digest
+            lastValue = comp[attr] = parentGet(declaringScope);
+            throw new Error("Expression '", expr, "' used with directive '", directiveName, "' is non-assignable!");
+        };
+        var parentGet = function uiParentGet(scope) {
+            var value = parentGetOrig(scope);
+            // $log.log("get ", attr, " in ", scope, " -> ", value);
+            return value;
+        };
+        switch (mode) {
 
-	            case '@': {
-	                log.warn("mode '", mode, "' not supported for attribute '", attrName, "'");
-	            	/*
-	                attrs.$observe(attrName, function(value) {
-	                    scope[scopeName] = value;
-	                  });
-	                  attrs.$$observers[attrName].$$scope = parentScope;
-	                  if( attrs[attrName] ) {
-	                    // If the attribute has been provided then we trigger an interpolation to ensure the value is there for use in the link fn
-	                    scope[scopeName] = $interpolate(attrs[attrName])(parentScope);
-	                  }
-	                  */
-	               // return;
-	                // fall through
-	            }
-	            case '=': {
-	                var parentSet = function uiParentSet(scope, value) {
-	                    parentSetOrig(scope, value);
-	                    $log.log("set ", attr, " to ", value, " in ", scope);
-	                };
-	                lastValue = comp[attr] = parentGet(declaringScope);
-	                var watchFn = function uiCompAttrValueWatch() {
-	                    // $log.log("watch BEG", attr, comp, "declaring-scope", declaringScope);
-	                    var parentValue = parentGet(declaringScope);
+            case '@': {
+                log.warn("mode '", mode, "' not supported for attribute '", attrName, "'");
+            	/*
+                attrs.$observe(attrName, function(value) {
+                    scope[scopeName] = value;
+                  });
+                  attrs.$$observers[attrName].$$scope = parentScope;
+                  if( attrs[attrName] ) {
+                    // If the attribute has been provided then we trigger an interpolation to ensure the value is there for use in the link fn
+                    scope[scopeName] = $interpolate(attrs[attrName])(parentScope);
+                  }
+                  */
+               // return;
+                // fall through
+            }
+            case '=': {
+                var parentSet = function uiParentSet(scope, value) {
+                    parentSetOrig(scope, value);
+                    $log.log("set ", attr, " to ", value, " in ", scope);
+                };
+                lastValue = comp[attr] = parentGet(declaringScope);
+                var watchFn = function uiCompAttrValueWatch() {
+                    // $log.log("watch BEG", attr, comp, "declaring-scope", declaringScope);
+                    var parentValue = parentGet(declaringScope);
 
-	                    if (parentValue !== comp[attr]) {
-	                        // we are out of sync and need to copy
-	                        if (parentValue !== lastValue) {
-	                            // parent changed and it has precedence
-	                            lastValue = comp[attr] = parentValue;
-	                        } else {
-	                            // if the parent can be assigned then do so
-	                            parentSet(declaringScope, parentValue = lastValue = comp[attr]);
-	                        }
-	                    }
-	                    //$log.log("watch END", attr, comp, "declaring-scope", declaringScope, " value ", parentValue);
-	                    return parentValue;
-	                };
-	                watchFn.attr = attr;
-	                watchFn.expr = expr;
-	                scope.$watch(watchFn);
-	                break;
-	            }
-	            case '&': {
-	                // note: this is called in the context of an parsed expression, no scope param here
-	                comp[attr] = function uiParentCallback(locals) {
-	                   // $log.log("callback ", attr, " in scope", scope, "declaring-scope", declaringScope);
-	                    return parentGet(declaringScope, locals);
-	                };
-	                break;
-	            }
-	            case '~': {
-	                comp[attr] = function uiParentFunction() {
-	                    var fn = parentGet(declaringScope);
-	                    var declaringComp = getComp(declaringScope);
-	                    //$log.log("callback-function BEG: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp);
-	                    /*var result = */fn.apply(declaringComp, arguments);
-	                    //$log.log("callback-function END: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp, "->", result);
-	                };
-	                break;
-	            }
-	            default: {
-	                throw Error('Invalid isolate scope definition for directive ' +
-	                    directiveName + ': ' + mode);
-	            }
-	        }
-	    }
-	    return ['$parse', '$log', function($parse, $log){
-	        return {
-	            restrict: 'A',
-	            compile: function(tElement, tAttrs, transclude) {
-	                var attr = attrName;
-	                var expr = tAttrs[directiveName];
-	                //console.log("compile-" + attr, tElement, tAttrs, transclude, attr, expr);
-	                return compileFns(
-	                    function uiAttrPreLink(scope, iElement, iAttrs, controller) {
-	                    	if (scope) {
-		                        //var ds = scope.declaringScope;
-		                        //console.log("link-" + attr + "-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
-	                    	}
-	                    },
-	                    function uiAttrPostLink(scope, iElement, iAttrs, controller) {
-	                    	if (scope) {
-		                        var ds = scope.declaringScope;
-		                        //console.log("link-" + attr + "-post", scope, tElement, tAttrs, controller, "declaring-scope", ds);
-		                        bindScopes($parse, $log, attr, expr, mode, scope, ds);
-	                    	}
-	                    }
-	                );
-	            }
-	        };
-	    }];
-	}
+                    if (parentValue !== comp[attr]) {
+                        // we are out of sync and need to copy
+                        if (parentValue !== lastValue) {
+                            // parent changed and it has precedence
+                            lastValue = comp[attr] = parentValue;
+                        } else {
+                            // if the parent can be assigned then do so
+                            parentSet(declaringScope, parentValue = lastValue = comp[attr]);
+                        }
+                    }
+                    //$log.log("watch END", attr, comp, "declaring-scope", declaringScope, " value ", parentValue);
+                    return parentValue;
+                };
+                watchFn.attr = attr;
+                watchFn.expr = expr;
+                scope.$watch(watchFn);
+                break;
+            }
+            case '&': {
+                // note: this is called in the context of an parsed expression, no scope param here
+                comp[attr] = function uiParentCallback(locals) {
+                   // $log.log("callback ", attr, " in scope", scope, "declaring-scope", declaringScope);
+                    return parentGet(declaringScope, locals);
+                };
+                break;
+            }
+            case '~': {
+                comp[attr] = function uiParentFunction() {
+                    var fn = parentGet(declaringScope);
+                    var declaringComp = getComp(declaringScope);
+                    //$log.log("callback-function BEG: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp);
+                    /*var result = */fn.apply(declaringComp, arguments);
+                    //$log.log("callback-function END: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp, "->", result);
+                };
+                break;
+            }
+            default: {
+                throw Error('Invalid isolate scope definition for directive ' +
+                    directiveName + ': ' + mode);
+            }
+        }
+    }
 
 	uiModule.directive("uid", function(){
 	    return {
