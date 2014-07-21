@@ -488,6 +488,16 @@ var ui = (function(angular){
 	    return null;
 	}
 
+	function getComp(scope) {
+	    var comp = scope.comp;
+	    var uuid = scope.declaredUuid;
+	    while (angular.isUndefined(comp) && scope.$parent != null && uuid == scope.$parent.declaredUuid) {
+	        scope = scope.$parent;
+	        comp = scope.comp;
+	    }
+	    return comp;
+	}
+
 	function logScopes() {
 		for (var i = 0; i < appRootScopes.length; i++) {
 			var appRootScope = appRootScopes[i];
@@ -619,7 +629,7 @@ var ui = (function(angular){
 	function getAttrDirective(directiveName, attrName, mode) {
 	    function bindScopes($parse, $log, attr, expr, mode, scope, declaringScope) {
 	        var lastValue;
-	        var comp = ui.getComp(scope);
+	        var comp = getComp(scope);
 	        if (angular.isUndefined(comp)) {
 	            $log.warn("bindScopes: comp not defined for directive ", directiveName,attr, expr, scope, declaringScope);
 	        }
@@ -691,7 +701,7 @@ var ui = (function(angular){
 	            case '~': {
 	                comp[attr] = function uiParentFunction() {
 	                    var fn = parentGet(declaringScope);
-	                    var declaringComp = ui.getComp(declaringScope);
+	                    var declaringComp = getComp(declaringScope);
 	                    //$log.log("callback-function BEG: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp);
 	                    /*var result = */fn.apply(declaringComp, arguments);
 	                    //$log.log("callback-function END: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp, "->", result);
@@ -742,7 +752,7 @@ var ui = (function(angular){
 	                function uiUidPostLink(scope, iElement, iAttrs, controller) {
 	                    var ds = scope.declaringScope;
 	                    var uid = iAttrs.uid;
-	                    var comp = ui.getComp(scope);
+	                    var comp = getComp(scope);
 	                    //console.log("link-uid-post", uid, scope, tElement, tAttrs, controller, "declaring-scope", ds, "comp", comp);
 	                    ds[uid] = comp;
 	                    //console.log("link-uid-post", scope, tElement, tAttrs, controller);
@@ -808,13 +818,7 @@ var ui = (function(angular){
 		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
 		 */
 		getComp: function(scope) {
-		    var comp = scope.comp;
-		    var uuid = scope.declaredUuid;
-		    while (angular.isUndefined(comp) && scope.$parent != null && uuid == scope.$parent.declaredUuid) {
-		        scope = scope.$parent;
-		        comp = scope.comp;
-		    }
-		    return comp;
+		    return getComp(scope);
 		},
 		/**
 		 * Logs the current scope structure to the browser console. 
