@@ -144,7 +144,14 @@ var ui = (function(angular){
 	        $delegate.uuidScopeMap[getUuid($rootElement)] = $delegate;
 	        setNode($delegate, $rootElement);
 
-	        var elementProto = Object.getPrototypeOf($rootElement);
+            function getPrototypeOf(object) {
+				if (typeof Object.getPrototypeOf !== "function") {
+					return object.constructor.prototype;
+				} else {
+					return Object.getPrototypeOf(object);
+				}
+	        }
+	        var elementProto = getPrototypeOf($rootElement);
 	        (function(data) {
 	        	elementProto.dataUiOrig = data;
 	            elementProto.data = function uiData(key, value) {
@@ -598,14 +605,14 @@ var ui = (function(angular){
 	
 	function bindUiAttrs(scope, attrs, $parse, $interpolate, $log) {
 		var element = scope.element;
-		console.log("bind-attr", element, attrs);
+		//console.log("bind-attr", element, attrs);
 	    angular.forEach(attrs, function(spec, attr) {
 	        if (spec == '=' || spec == '&' || spec == '~') {
 	        	var directiveName = snake_case(attr, '-');
 	        	// check, if attr is given at the component-tag
 	            var expr = element.attr(directiveName);
 	        	if (expr) {
-            		console.log("bind-attr-bind", spec,attr, directiveName, expr);
+            		//console.log("bind-attr-bind", spec,attr, directiveName, expr);
             		// use parent here instead of declaringScope to serve ng-repeat scopes as well
             		var parent = scope.$parent;
     	            bindScopes($parse, $interpolate, $log, directiveName, attr, expr, spec, scope, parent);
