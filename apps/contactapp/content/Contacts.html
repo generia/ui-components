@@ -1,6 +1,6 @@
 <div class="Contacts">
     <div class="span3">
-        <contact-nav uid="nav" menu-tip="comp.getMenuTip()" contacts="list.contacts" selected-contact="comp.selectedContact" on-select="comp.showDetail"></contact-nav>
+        <contact-nav uid="nav" menu-tip="comp.getMenuTip()" contacts="list.contacts" selected-contact="comp.selectedContact" on-select="comp.showDetail(nav.selectedContact)"></contact-nav>
     </div>
     <div class="span9">
         <contact-list uid="list" on-select="comp.showDetail" class="animate-show-hide" ui-show="comp.selectedContact == null"></contact-list>

@@ -1,6 +1,6 @@
 ui.component('navigation', 'Menu', {
     active:'=',
-    onClick: '&',
+    onClick: '~',
     label: '='
 }, ['comp', function MenuCtrl(comp) {
     comp.active = true;
