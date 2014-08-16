@@ -513,14 +513,29 @@ var ui = (function(angular){
         return null;
     }
 
-	function getComp(scope) {
+	function getCompScope(scope) {
 	    var comp = scope.comp;
 	    var uuid = scope.declaredUuid;
 	    while (angular.isUndefined(comp) && scope.$parent != null && uuid == scope.$parent.declaredUuid) {
 	        scope = scope.$parent;
-	        comp = scope.comp;
 	    }
-	    return comp;
+	    return scope;
+	}
+
+	function getComp(scope) {
+		var compScope = getCompScope(scope);
+		if (compScope == null) {
+			return null;
+		}
+	    return compScope.comp;
+	}
+
+	function getCompInfo(scope) {
+		var compScope = getCompScope(scope);
+		if (compScope == null) {
+			return null;
+		}
+	    return compScope.compInfo;
 	}
 
 	function logScopes() {
@@ -534,7 +549,7 @@ var ui = (function(angular){
 	    var declaredNode = scope.element;
 	    var declaringNode = declaringScope ? declaringScope.element : null;
 	    var transcluded = scope.$$transcluded ? "transcluded " : "";
-	    var uiName = scope.comp ? scope.comp.uiName : (isRootUuid(scope.declaredUuid) ? "<root>" : "?comp?");
+	    var uiName = scope.compInfo ? scope.compInfo.name : (isRootUuid(scope.declaredUuid) ? "<root>" : "?comp?");
 	    var scopeId = declaringScope ? declaringScope.$id : (isRootUuid(scope.declaredUuid) ? undefined : "?$id?");
 	    //console.log(ind, "declared-uuid", scope.declaredUuid, "declaring-uuid", scope.declaringUuid, "declared-node", declaredNode, "declaring-node", declaringNode, "scope: ", scope, "declaring-scope", scope.declaringScope);
 	    console.log(ind, transcluded + uiName, "uuid: ", scope.declaredUuid, "->", scope.declaringUuid, "scope: ", scope.$id, "->", scopeId, scope, "node: ", declaredNode, "->", declaringNode);
@@ -553,7 +568,7 @@ var ui = (function(angular){
 	}
 	function logComp(scope, ind) {
 	    var declaredNode = scope.element;
-	    var uiName = scope.comp ? scope.comp.uiName : (isRootUuid(scope.declaredUuid) ? "<root>" : "?comp?");
+	    var uiName = scope.compInfo ? scope.compInfo.name : (isRootUuid(scope.declaredUuid) ? "<root>" : "?comp?");
 	    var declaredComp = scope.comp;
 	    var declaredUuid = scope.declaredUuid;
 	    if (declaredUuid && !scope.$$transcluded) {
@@ -665,9 +680,7 @@ var ui = (function(angular){
 			};
 
     		// create empty comp instance
-    		$scope.comp = {
-    			uiName: name
-    		};
+    		$scope.comp = {};
 
     		// check, for custom comp-instance creation
             if ($injector.has('uiIntegrationProvider')) {
