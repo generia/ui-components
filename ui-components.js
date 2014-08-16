@@ -607,16 +607,16 @@ var ui = (function(angular){
 	                    tAttrs[key] = encodeUuid(uuid, tAttrs[key]);
 	                });
 	                var templateUrl = (pkg != '' ? pkg + '/' : '') + name + '.html';
-	                if ($injector.has('templateProvider')) {
-	                	var templateProvider = $injector.get('templateProvider');
-	                	templateUrl = templateProvider.getTemplateUrl(pkg, name, tAttrs);
+	                if ($injector.has('uiIntegrationProvider')) {
+	                	var uiIntegrationProvider = $injector.get('uiIntegrationProvider');
+	                	templateUrl = uiIntegrationProvider.getTemplateUrl(pkg, name, tAttrs);
 	                }
 	                templateUrl = encodeUuid(uuid, templateUrl);
 	                //console.log(name + "-template-url: ", $compileNode, tAttrs, "declared-component", getUuid($compileNode), $compileNode, "declaring-component", declaringComponent, getUuid(declaringComponent));
 	                declaringComponentHolder.setDeclaringComponent(templateUrl, $compileNode);
 	                return templateUrl;
 	            },
-	            controller: decorateController(name, attrs, $controller, controller)
+	            controller: decorateController(pkg, name, attrs, $controller, controller)
 	        };
 	    }]);
         return module;
@@ -655,11 +655,30 @@ var ui = (function(angular){
 		return compileFn;
 	}
 
-	function decorateController(name, attrs, $controller, controller) {
-	    return ['$scope', '$parse', '$interpolate', '$compile', '$log', function UiComponentController($scope, $parse, $interpolate, $compile, $log) {
-	        $scope.comp = {
-	            uiName: name
-	        };
+	function decorateController(pkg, name, attrs, $controller, controller) {
+	    return ['$injector', '$scope', '$parse', '$interpolate', '$compile', '$log', function UiComponentController($injector, $scope, $parse, $interpolate, $compile, $log) {
+
+	    	// create component info 
+    		$scope.compInfo = {
+				pkg: pkg,
+	            name: name
+			};
+
+    		// create empty comp instance
+    		$scope.comp = {
+    			uiName: name
+    		};
+
+    		// check, for custom comp-instance creation
+            if ($injector.has('uiIntegrationProvider')) {
+            	var uiIntegrationProvider = $injector.get('uiIntegrationProvider');
+		        var customComp = uiIntegrationProvider.createCompInstance(pkg, name, attrs, $scope);
+		        if (customComp) {
+		        	$scope.comp = customComp;
+		        }
+            }
+	    	
+	        
 	        var locals = {
 	            '$scope': $scope,
 	            'comp': $scope.comp
