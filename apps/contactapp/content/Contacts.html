@@ -1,9 +1,9 @@
 <div class="Contacts">
     <div class="span3">
-        <contact-nav uid="nav" menu-tip="comp.getMenuTip()" contacts="list.contacts" selected-contact="comp.selectedContact" on-select="comp.showDetail(nav.selectedContact)"></contact-nav>
+        <contact-nav ui-id="nav" menu-tip="comp.getMenuTip()" contacts="list.contacts" selected-contact="comp.selectedContact" on-select="comp.showDetail(nav.selectedContact)"></contact-nav>
     </div>
     <div class="span9">
-        <contact-list uid="list" on-select="comp.showDetail(contact)" class="animate-show-hide" ng-show="comp.selectedContact == null"></contact-list>
-        <contact-detail uid="detail" class="animate-show-hide" ng-show="comp.selectedContact != null"></contact-detail>
+        <contact-list ui-id="list" on-select="comp.showDetail(contact)" class="animate-show-hide" ng-show="comp.selectedContact == null"></contact-list>
+        <contact-detail ui-id="detail" class="animate-show-hide" ng-show="comp.selectedContact != null"></contact-detail>
     </div>
 </div>

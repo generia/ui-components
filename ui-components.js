@@ -818,11 +818,11 @@ var ui = (function(angular){
     }
     
     
-	uiModule.directive("uid", function(){
+	uiModule.directive("uiId", function(){
 	    return {
 	        restrict: 'A',
 	        compile: function(tElement, tAttrs, transclude) {
-	            //console.log("compile-uid", tElement, tAttrs, transclude);
+	            //console.log("compile-uiId", tElement, tAttrs, transclude);
 	            return compileFns(
 	                function uiUidPreLink(scope, iElement, iAttrs, controller) {
 	                },
@@ -832,11 +832,11 @@ var ui = (function(angular){
                         }
                         if (scope) {
                             var ds = isRepeat(scope.$parent) ? scope.$parent : scope.declaringScope;
-	                        var uid = iAttrs.uid;
+	                        var uiId = iAttrs.uiId;
 	                        var comp = getComp(scope);
-	                        //console.log("link-uid-post", uid, scope, tElement, tAttrs, controller, "declaring-scope", ds, "comp", comp);
-	                        ds[uid] = comp;
-	                        //console.log("link-uid-post", scope, tElement, tAttrs, controller);
+	                        //console.log("link-uiId-post", uiId, scope, tElement, tAttrs, controller, "declaring-scope", ds, "comp", comp);
+	                        ds[uiId] = comp;
+	                        //console.log("link-uiId-post", scope, tElement, tAttrs, controller);
 	                    }
                     }
 	            );
