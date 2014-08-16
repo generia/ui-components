@@ -1,6 +1,5 @@
 ui.component('content/contacts', 'ContactList', {
-	menuTip:'@',
-    onSelect:'~'
+    onSelect:'&'
 }, ['comp', '$log', 'contactService', function(comp, $log, contactService) {
     contactService.all().then(function (resp) {
     	//console.log("all-resp", resp);

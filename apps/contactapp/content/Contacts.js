@@ -1,5 +1,4 @@
 ui.component('content', 'Contacts', {
-    dummy:"="
 }, ['comp', '$scope', function(comp, $scope) {
     comp.selectedContact = null;
 

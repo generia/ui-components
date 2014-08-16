@@ -1,5 +1,4 @@
 ui.component('content/contacts', 'ContactDetail', {
-	menuTip:'@'
 }, ['comp', function ContactDetailCtrl(comp) {
     comp.contact = null;
     comp.state = null;

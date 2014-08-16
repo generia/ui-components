@@ -1,7 +1,7 @@
 ui.component('navigation', 'Navigation', {
     title:'=',
     info: '=',
-    onHome: '~'
+    onHome: '&'
 }, ['comp', function NavigationCtrl(comp) {
 
 }]);

@@ -2,7 +2,7 @@ ui.component('content/contacts', 'ContactNav', {
 	menuTip:'=',
 	contacts:'=',
     selectedContact:'=',
-    onSelect:'~'
+    onSelect:'&'
 }, ['comp', 'randomService', function ContactNavCtrl(comp, randomService) {
     comp.contacts = [];
     comp.selectedContact = null;
