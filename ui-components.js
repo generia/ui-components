@@ -812,39 +812,6 @@ var ui = (function(angular){
 	    };
 	});
 
-	uiModule.directive("uiShow", ['$parse', '$animate', function($parse, $animate) {
-	    return {
-	        restrict: 'A',
-	        compile: function(tElement, tAttrs, transclude) {
-	            var expr = tAttrs["uiShow"];
-	            var uuid = getUuid(tElement);
-	            var uiExpr = encodeUuid(uuid, expr);
-	            //console.log("compile-uiShow", tElement, tAttrs, transclude, expr, uuid, uiExpr, $animate);
-	            return compileFns(
-	                function(scope, iElement, iAttrs, controller) {
-	                    //console.log("link-uid-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
-	                },
-	                function(scope, iElement, iAttrs, controller) {
-	                	if (scope) {
-		                    //var ds = scope.declaringScope;
-		                    //console.log("ui-show-post", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds);
-		                    scope.$watch(uiExpr, function uiShowWatcher(value) {
-		                      //  console.log("ui-show-watch", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds, "->", value);
-		                        if (value) {
-		                            //iElement.removeClass("ng-hide");
-		                        	$animate.removeClass(iElement, 'ng-hide');
-		                        } else {
-		                        	$animate.addClass(iElement, 'ng-hide');
-		                            //iElement.addClass("ng-hide");
-		                        }
-		                        return value;
-		                    });
-	                	}
-	                }
-	            );
-	        }
-	    };
-	}]);
 	
 	/**
 	 * @exports ui
