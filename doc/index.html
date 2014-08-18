@@ -41,7 +41,9 @@
 
 
     <section>
-        <article><h1>Ui-Components</h1>
+        <article><h1>ui-components</h1>
+
+<blockquote><p>Build <a href="http://angularjs.org">angular</a> applications from a business point of view.</p></blockquote>
 
 <p>Ui-components serve as a central building block for constructing angular applications.
 They are based on the widget idea presented in <a href="http://docs.angularjs.org/guide/directive#creating-components">Creating Components</a> of the <a href="http://docs.angularjs.org/guide/directive">directive</a> tutorial.</p>
@@ -58,9 +60,9 @@ Furthermore the view describes how the component is composed by other sub-compon
 
 <p>The following figure gives an overview how model, view and controller work together via event- and value-bindings and it shows their overall integration into a business-application.</p>
 
-<p><img alt="MVC-Pattern" src="img/mvc-pattern.png"/></p>
+<p><img alt="MVC-Pattern" src="https://raw.github.com/generia/ui-components/master/doc/img/mvc-pattern.png"/></p>
 
-<h2>Example-1: <code>SampleApp</code> Application using <code>HelloWorld</code> Component (<a href="../apps/sampleapp/SampleApp.html">Run</a>)</h2>
+<h2>Example-1: <code>SampleApp</code> Application using <code>HelloWorld</code> Component (<a href="http://www.generia.de/ui-components/apps/sampleapp/SampleApp.html">Run</a>)</h2>
 
 <p>The first example defines a simple <code>HelloWorld</code> component that exposes two properties as its interface.
 This component is used then in the <code>SampleApp</code> angular application. This application consists of the following files:</p>
@@ -76,7 +78,8 @@ It includes all necessary js- and css-files and instantiates the <code>HelloWorl
 
 <p><code>SampleApp.html</code>: The application´s main page.</p>
 
-<pre><code>&lt;!doctype html&gt;
+<p><code>html
+&lt;!doctype html&gt;
 &lt;html ng-app=&quot;SampleApp&quot;&gt;
     &lt;head&gt;
         &lt;title&gt;Sample App&lt;/title&gt;
@@ -89,18 +92,23 @@ It includes all necessary js- and css-files and instantiates the <code>HelloWorl
     &lt;body&gt;
         &lt;hello-world salutation=&quot;&#39;Hello&#39;&quot; message=&quot;&#39;World&#39;&quot;/&gt;
     &lt;/body&gt;
-&lt;/html&gt;</code></pre>
+&lt;/html&gt;
+</code></p>
 
 <p><code>SampleApp.js</code>: Defines the angular app-module with the required the depending modules.</p>
 
-<pre><code>angular.module(&#39;SampleApp&#39;, [&#39;ng&#39;, &#39;ui&#39;, &#39;HelloWorld&#39;]);</code></pre>
+<p><code>JavaScript
+    angular.module(&#39;SampleApp&#39;, [&#39;ng&#39;, &#39;ui&#39;, &#39;HelloWorld&#39;]);
+</code></p>
 
 <p><code>SampleApp.css</code>: Have a little style for the component.</p>
 
-<pre><code>.HelloWorld {
-    border: 1px solid green;
-    padding: 5px;
-}</code></pre>
+<p><code>css
+    .HelloWorld {
+        border: 1px solid green;
+        padding: 5px;
+    }
+</code></p>
 
 <p>The <code>HelloWorld</code> component resides in the <code>example1</code> folder and has two model-properties <code>salutation</code> and <code>message</code> as defined by the<code>ui.component</code> call.
 The controller of the component is defined by the <code>HelloWorldController</code> function.
@@ -112,21 +120,25 @@ It is very similar to angular´s <a href="http://docs.angularjs.org/guide/scope"
 
 <p><code>HelloWorld.js</code>: The component-definition with model and controller</p>
 
-<pre><code>ui.component(&#39;example1&#39;, &#39;HelloWorld&#39;, &#39;helloWorld&#39;, {
-    salutation:&#39;=&#39;,
-    message:&#39;=&#39;
-}, [&#39;comp&#39;, function HelloWorldController(comp) {
-    comp.salutation = &quot;&quot;;
-    comp.message = &quot;&quot;;
-}]);</code></pre>
+<p><code>JavaScript
+    ui.component(&#39;example1&#39;, &#39;HelloWorld&#39;, {
+        salutation:&#39;=&#39;,
+        message:&#39;=&#39;
+    }, [&#39;comp&#39;, function HelloWorldController(comp) {
+        comp.salutation = &quot;&quot;;
+        comp.message = &quot;&quot;;
+    }]);
+</code></p>
 
 <p>The <code>comp</code> variable is then available in the view of the component and gives access to the model-values.</p>
 
 <p><code>HelloWorld.html</code>: The view-definition of the component with model binding.</p>
 
-<pre><code>&lt;span class=&quot;HelloWorld&quot;&gt;
-    {{comp.salutation}} {{comp.message}}.
-&lt;/span&gt;</code></pre>
+<p><code>html
+    &lt;span class=&quot;HelloWorld&quot;&gt;
+        {{comp.salutation}} {{comp.message}}.
+    &lt;/span&gt;
+</code></p>
 
 <h2>Ui-Component Features</h2>
 
@@ -159,7 +171,7 @@ This parent-child relation in now used to organize the component-interaction acc
 The basic idea is that the communication between components always goes along the component-tree.
 By this the parent-component takes the role of the mediator for all its child-components as shown in the following figure.</p>
 
-<p><img alt="Mediator-Function" src="img/mediator-function.png"/></p>
+<p><img alt="Mediator-Function" src="https://raw.github.com/generia/ui-components/master/doc/img/mediator-function.png"/></p>
 
 <p>The child-components do not know each other, only the common parent-component takes care for dispatching values and events to the relevant child-components.
 Using this approach every sub-tree of the component-tree is always self-contained. All incoming and outgoing dependencies are controlled by the root-component of a sub-tree.
@@ -175,16 +187,10 @@ By this properties and/or methods of child-components can be accessed by the par
 <p>Here, three view-declarations are shown for the components P, Q and D. The P component can take component-parameters an inserts them for the placeholder marked with <code>&lt;children&gt;</code> into it&#39;s sub-tree.
 The D component uses the P component and passes two instances q1 and a2 of the Q component as component-parameter. This is shown in the following figure.</p>
 
-<p><img alt="Component-Identification" src="img/component-identification.png"/></p>
+<p><img alt="Component-Identification" src="https://raw.github.com/generia/ui-components/master/doc/img/component-identification.png"/></p>
 
 <p>For displaying the D component a component-tree is built at runtime as shown in the previous figure.
 By this every node in the tree gets an absolute path that is built from the ids of the respective components.</p>
-
-<p>&lt;table&gt;
-	&lt;tr&gt;
-		&lt;th&gt;Path&lt;/th&gt;&lt;th&gt;Type&lt;/th&gt;&lt;th&gt;Declaring Component&lt;/th&gt;&lt;th&gt;Parent Component&lt;/th&gt;
-	&lt;/tr&gt;
-&lt;/table&gt;</p>
 
 <p>| Path | Type | Declaring Component | Parent Component |
 |------|------|---------------------|------------------| 
@@ -216,7 +222,7 @@ This can even happen in a nested way. Due to this it is always necessary that a 
 
 <p>For accessing the declaring component in a view-declaration the special <code>comp</code> variable is provided that always hold the reference to the declaring component of the view-declaration at hand.</p>
 
-<h2>Example-2: <code>ContactApp</code> Application (<a href="../apps/contactapp/ContactApp.html">Run</a>)</h2>
+<h2>Example-2: <code>ContactApp</code> Application (<a href="http://www.generia.de/ui-components/apps/contactapp/ContactApp.html">Run</a>)</h2>
 
 <p>The contact application example was taken from the <a href="https://github.com/angular-ui/ui-router/tree/master/sample">sample</a> of the <a href="https://github.com/angular-ui/ui-router">ui-router</a> project.
 While the ui-router uses an centralized state-machine to keep track of the current view state, the ui-components approach favours a decentralized state encapsulated in reusable components.</p>
@@ -262,13 +268,13 @@ The component-file-structure is shown in the following figure:</p>
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ui.html">ui</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ui.html">ui</a></li></ul><h3>Mixins</h3><ul><li><a href="uiIntegrationProvider.html">uiIntegrationProvider</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Tue Oct 22 2013 23:45:31 GMT+0200 (MESZ)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Mon Aug 18 2014 01:56:40 GMT+0200 (MESZ)
 </footer>
 
 <script> prettyPrint(); </script>

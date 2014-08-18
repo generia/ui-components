@@ -28,7 +28,7 @@
             <pre class="prettyprint source"><code>/*
  * The MIT License (MIT)
  * 
- * Copyright (c) 2013 Generia [https://github.com/generia/ui-components]
+ * Copyright (c) 2013,2014 Generia [https://github.com/generia/ui-components]
  * 
  * Permission is hereby granted, free of charge, to any person obtaining a copy of
  * this software and associated documentation files (the "Software"), to deal in
@@ -48,6 +48,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * 
  */
+/*
+ * Version: ui-components v1.1
+ */
 var ui = (function(angular){
 
 	var uiModule = angular.module('ui', []);
@@ -57,7 +60,12 @@ var ui = (function(angular){
 	        //$log.info("compile-decorator: ", $delegate);
 
 	        var compile = function(element, transclude, maxPriority) {
-	            //$log.info("decorated compile-function BEG: ", element, transclude, maxPriority);
+                var isString = typeof element === "string";
+                if (!isString) {
+                    var dc = findDeclaringComponentByUuid(element);
+                    //$log.info("decorated compile-function BEG: ", element, transclude, maxPriority, dc);
+                    pushDeclaringComponent(dc);
+                }
 	            var linkFn = $delegate(element, transclude, maxPriority);
 	            var uiLinkFn = function(scope, cloneConnectFn){
 	                //$log.info("decorated link-function BEG: ", scope, cloneConnectFn);
@@ -65,6 +73,9 @@ var ui = (function(angular){
 	                //$log.info("decorated link-function END: ", scope, cloneConnectFn, o);
 	                return o;
 	            };
+                if (!isString) {
+	            	popDeclaringComponent();
+                }
 	            //$log.info("decorated compile-function END: ", element, transclude, maxPriority, uiLinkFn);
 	            return uiLinkFn;
 	        };
@@ -76,14 +87,14 @@ var ui = (function(angular){
 	        var parse = function uiParse(expression) {
 	            var parts = decodeUuid(expression);
 	            if (parts.uuid) {
-	              //  $log.info("parse-function BEG:", expression, parts);
+	                //$log.info("parse-function BEG:", expression, parts);
 	            }
 	            var exprFn = $delegate(parts.expr);
 	            var exprAssignFn = exprFn.assign;
 	            var exprConstant = exprFn.constant;
 	            var wrappedFn = function uiParseEval(scope, locals) {
 	                var declaringScope = scope;
-	                //$log.info("parse-eval-function BEG", expression, scope, locals, "declaring-uuid", parts.uuid, "expr-fn", exprFn);
+          			//$log.info("parse-eval-function BEG", expression, scope, locals, "declaring-uuid", parts.uuid, "expr-fn", exprFn);
 	                if (parts.uuid) {
 	                    declaringScope = getDeclaringScopeByUuid(parts.uuid);
 	                }
@@ -91,7 +102,7 @@ var ui = (function(angular){
 	                    var value = exprFn(declaringScope, locals);
 	                    if (parts.uuid) {
 	                    }
-	                  //  $log.info("parse-eval-function END", expression, scope, locals, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
+			            //$log.info("parse-eval-function END", expression, scope, locals, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
 	                    return value;
 	                } catch (e) {
 	                    $log.error("parse-eval-function ERR", expression, scope, locals, "declared-uuid", parts.uuid, "declaring-scope", declaringScope, e);
@@ -104,17 +115,17 @@ var ui = (function(angular){
 	            if (exprAssignFn) {
 	                wrappedFn.assign = function(scope, value) {
 	                    var declaringScope = scope;
-	                    //$log.info("expr-setter BEG", expression, scope, "declaring-uuid", parts.uuid);
+            			//$log.info("expr-setter BEG", expression, scope, "declaring-uuid", parts.uuid);
 	                    if (parts.uuid) {
 	                        declaringScope = getDeclaringScopeByUuid(parts.uuid);
 	                    }
 	                    var result = exprAssignFn(declaringScope, value);
-	                    //$log.info("expr-setter END", expression, scope, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
+			            //$log.info("expr-setter END", expression, scope, "value", value, "declared-uuid", parts.uuid, "declaring-scope", declaringScope);
 	                    return result;
 	                };
 	            }
 	            if (parts.uuid) {
-	               // $log.info("parse-function END:", expression, exprFn, exprFn.assign, "assign", exprAssignFn, wrappedFn.assign);
+	                //$log.info("parse-function END:", expression, exprFn, exprFn.assign, "assign", exprAssignFn, wrappedFn.assign);
 	            }
 	            return wrappedFn;
 	        };
@@ -153,27 +164,51 @@ var ui = (function(angular){
 	        return interpolate;
 	    }]);
 	    $provide.decorator('$rootScope', ['$delegate', '$log', '$rootElement', function ($delegate, $log, $rootElement) {
-	        //$log.info("xrootScope-decorator: ", $delegate, $rootElement);
-	        appRootElement = $rootElement;
+	        //$log.info("rootScope-decorator: ", $delegate, $rootElement);
+	        setUuid($rootElement, getComponentUuid($rootElement, appRootScopes.length));
+	        
+	        appRootScopes.push($delegate);
+	        $delegate.declaredComponentMap = {};
+	        $delegate.declaredUuidMap = {};
+	        $delegate.uuidScopeMap = {};
+	        $delegate.uuidScopeMap[getUuid($rootElement)] = $delegate;
+	        setNode($delegate, $rootElement);
 
-	        var elementProto = appRootElement.__proto__;
+            function getPrototypeOf(object) {
+				if (typeof Object.getPrototypeOf !== "function") {
+					return object.constructor.prototype;
+				} else {
+					return Object.getPrototypeOf(object);
+				}
+	        }
+	        var elementProto = getPrototypeOf($rootElement);
 	        (function(data) {
+	        	elementProto.dataUiOrig = data;
 	            elementProto.data = function uiData(key, value) {
 	                //console.info("data BEG", "key", key, "value", value, "this", this);
 	                var result = data.apply(this, arguments);
-	                if (key == '$scope' && !angular.isUndefined(value)) {
-	                    value.element = result;
-	                    value.declaredUuid = getUuid(result);
-	                    var declaringComponent = null;
-	                    if (value.declaredUuid) {
-	                        appRootScope.uuidScopeMap[value.declaredUuid] = value;
-	                        value.declaringUuid = appRootScope.declaredUuidMap[value.declaredUuid];
-	                        value.declaringScope = appRootScope.uuidScopeMap[value.declaringUuid];
-	                        if (value.declaringScope) {
-	                            declaringComponent = value.declaringScope.element;
-	                        }
+	                if ((key == '$scope' || key == '$isolateScope') && !angular.isUndefined(value)) {
+	                	var scope = value;
+	                    setNode(scope, result);
+	                    scope.declaredUuid = getUuid(result);
+	                    var appRootScope;
+	                    if (scope.declaredUuid) {
+		                    appRootScope = getRootScopeByUuid(scope.declaredUuid);
+		                    appRootScope.uuidScopeMap[scope.declaredUuid] = scope;
+	                        scope.declaringUuid = appRootScope.declaredUuidMap[scope.declaredUuid];
+	                    } else {
+							var declaringScope = getDeclaringScope(scope);
+							scope.declaringUuid = declaringScope.declaredUuid;
+		                    appRootScope = getRootScopeByUuid(scope.declaringUuid);
 	                    }
-	                    //console.info("attaching scope", value, " to ", result, "uuid", getUuid(result), "declaring-uuid", getUuid(declaringComponent), "declaring-scope", value.declaringScope, "declaring-component", declaringComponent, "declared-data", result.data(), "declaring-data", (declaringComponent ? declaringComponent.data() : 'none'));
+                        scope.declaringScope = appRootScope.uuidScopeMap[scope.declaringUuid];
+	                    /*
+	                    var declaringComponent = null;
+                        if (scope.declaringScope) {
+                            declaringComponent = getNode(scope.declaringScope);
+                        }
+	                    console.info("$delegate", $delegate, "appRootScope", appRootScope, "attaching scope", scope, " to ", result, "uuid", getUuid(result), "declaring-uuid", getUuid(declaringComponent), "declaring-scope", scope.declaringScope, "declaring-component", declaringComponent, "declared-data", result.data(), "declaring-data", (declaringComponent ? declaringComponent.data() : 'none'));
+						*/
 
 	                } else {
 	                    //console.info("called data(", key, value, ") -> ", result);
@@ -181,35 +216,28 @@ var ui = (function(angular){
 	                //console.info("data END", "key", key, "value", value, "this", this, "->", result);
 	                return result;
 	            };
-	        })(elementProto.data);
+	        })(elementProto.dataUiOrig || elementProto.data);
 
-	        setUuid(appRootElement, getComponentUuid(appRootElement));
-
-	        var prototype = $delegate.__proto__;
+	        var scopeProto = Object.getPrototypeOf($delegate);
 	        (function($new) {
-	            prototype.$new = function uiNew(isolate) {
+	        	scopeProto.$newUiOrig = $new;
+	        	scopeProto.$new = function uiNew(isolate) {
 	                var newScope = $new.apply(this, arguments);
 	                //console.info("created new scope", newScope, "for parent ", this, " on current declaring-component ", currentDeclaringComponent());
 	                return newScope;
 	            };
-	        })(prototype.$new);
-	        $delegate.$new = prototype.$new;
+	        })(scopeProto.$newUiOrig || scopeProto.$new);
 
 	        (function($watch) {
-	            prototype.$watch = function uiWatch(watchExp, listener, objectEquality) {
+	        	scopeProto.$watchUiOrig = $watch;
+	        	scopeProto.$watch = function uiWatch(watchExp, listener, objectEquality) {
 	                //console.log("Scope.watch BEG", this, "watch-exp", watchExp, "listener", listener);
 	                var result = $watch.apply(this, arguments);
 	                //console.log("Scope.watch END", this, "watch-exp", watchExp, "listener", listener, " -> ", result);
 	                return result;
 	            };
-	        })(prototype.$watch);
-	        $delegate.$watch = prototype.$watch;
+	        })(scopeProto.$watchUiOrig || scopeProto.$watch);
 
-	        appRootScope = $delegate;
-	        appRootScope.declaredComponentMap = {};
-	        appRootScope.declaredUuidMap = {};
-	        appRootScope.uuidScopeMap = {};
-	        appRootScope.uuidScopeMap[getUuid(appRootElement)] = appRootScope;
 	        return $delegate;
 	    }]);
 	    $provide.decorator('$http', ['$delegate', '$log', 'declaringComponentHolder', function ($delegate, $log, declaringComponentHolder) {
@@ -236,40 +264,21 @@ var ui = (function(angular){
 	                };
 	                return successFn(wrappedFn);
 	            };
+	            /*
+	            var errorFn = future.error;
+	            future.error = function(fn) {
+	                var wrappedFn = function(data, status, headers, config) {
+	                    console.log("call error-fn", data, status, headers, config);
+	                };
+	                return errorFn(wrappedFn);
+	            };
+				*/
 	            return future;
 	        };
 	        $delegate.get = wrappedFn;
 	        //$log.info("httpProvider-decorator: ", $delegate, $delegate.get);
 	        return $delegate;
 	    }]);
-
-	    $provide.factory('myHttpInterceptor', ['$q', '$log', 'declaringComponentHolder', function($q, $log, declaringComponentHolder) {
-	        return {
-	            'request': function(config) {
-	                //var dc = declaringComponentHolder.getDeclaringComponent(config.url);
-	                //$log.info("http-request", config, $q, dc);
-	                return config || $q.when(config);
-	            },
-
-	            'requestError': function(rejection) {
-	                $log.info("http-requestError", rejection);
-	                return $q.reject(rejection);
-	            },
-
-	            'response': function(response) {
-	                //var dc = declaringComponentHolder.getDeclaringComponent(response.config.url);
-	                //$log.info("http-response BEG", response, $q, dc);
-	                return response;
-	            },
-
-	            'responseError': function(rejection) {
-	                $log.info("http-responseError", rejection);
-	                return $q.reject(rejection);
-	            }
-	        };
-	    }]);
-
-	    $httpProvider.interceptors.push('myHttpInterceptor');
 	}]);
 
 	uiModule.factory('declaringComponentHolder', ['$log', function ($log) {
@@ -288,15 +297,6 @@ var ui = (function(angular){
 	    return holder;
 	}]);
 
-
-	function dumpScope() {
-	    var $injector = angular.injector(['ContactApp']);
-	    var sc = $injector.get('$rootScope');
-	    logObj(sc);
-
-	    var service = $injector.get('debugService');
-	    service.logScope();
-	}
 
 	function logObj(obj) {
 	    for(i in obj) {
@@ -328,13 +328,50 @@ var ui = (function(angular){
 	    return info;
 	}
 
-	var appRootElement = null;
-	var appRootScope = null;
-
+	var appRootScopes = [];
+	
+	function getRootScopeByUuid(uuid) {
+		var rootId = getRootIdByUuid(uuid);
+		return appRootScopes[rootId];
+	}
+	
+	function getRootElement(node) {
+		var parent = node;
+		while(parent !== undefined && parent.length != 0) {
+			var uuid = getUuid(parent);
+			if (isRootUuid(uuid)) {
+				return parent;
+			}
+			parent = parent.parent();
+		}
+		return null;
+	}
+	
+	function isRootUuid(uuid) {
+		if (uuid == null) {
+			return false;
+		}
+		var rootScope = getRootScopeByUuid(uuid);
+		var rootElement = getNode(rootScope);
+		return uuid == getUuid(rootElement);
+	}
+	
+	function getRootIdByUuid(uuid) {
+		var parts = uuid.split(".");
+		return parts[0];
+	}
+	
 	var componentIdSequence = 0;
 	var declaringComponentStack = [];
-	function getComponentUuid(node) {
-	    return (componentIdSequence++);
+	
+	function getComponentUuid(node, rootId) {
+		var uuid = (componentIdSequence++).toString();
+		if (rootId != null) {
+			uuid = rootId + "." + uuid;
+		} else {
+			uuid = uuid + "." + uuid;
+		}
+	    return uuid;
 	}
 	function pushDeclaringComponent(node) {
 	    declaringComponentStack.push(node);
@@ -351,7 +388,7 @@ var ui = (function(angular){
 	    if (declaringComponentStack.length > 0) {
 	        return declaringComponentStack[declaringComponentStack.length-1];
 	    }
-	    return appRootElement;
+	    return null;
 	}
 
 
@@ -360,13 +397,13 @@ var ui = (function(angular){
 	}
 
 	function decodeUuid(expression) {
-	    var regex = /ui\(([0-9]+)\)-(.*)/;
+	    var regex = /ui\(([0-9]+\.[0-9]+)\)-(.*)/;
 	    var result = regex.exec(expression);
 	    var parts = {uuid: null, expr: expression};
 	    if (result == null) {
 	        return parts;
 	    }
-	    var uuid = parseInt(result[1]);
+	    var uuid = result[1];
 	    var expr = result[2];
 	    if (uuid) {
 	        parts = {uuid: uuid, expr: expr};
@@ -376,7 +413,18 @@ var ui = (function(angular){
 
 	var uuidAttr = '_uuid';
 
-	function getUuid(node) {
+	function getNode(scope) {
+	    if (angular.isUndefined(scope)) {
+	        return null;
+	    }
+		return scope.element;
+	}
+
+	function setNode(scope, node) {
+		scope.element = node;
+	}
+	
+ 	function getUuid(node) {
 	    if (angular.isUndefined(node)) {
 	        return null;
 	    }
@@ -396,24 +444,16 @@ var ui = (function(angular){
 		angular.element(node).attr(uuidAttr, uuid);
 	}
 
-	function getMetadataNode(node) {
-		var elem = angular.element(node);
-		var children = elem.children();
-		if (children.length == 1) {
-			//return angular.element(children[0]);
-		}
-		return elem;
-	}
-
 	function registerDeclaredComponent(node, attrs) {
 	    var declaringComponent = currentDeclaringComponent();
 	    if (declaringComponent == null) {
 	        declaringComponent = findDeclaringComponent(node);
 	    }
 	    var declaringUuid = getUuid(declaringComponent);
-	    var declaredUuid = getComponentUuid(node);
+	    var declaredUuid = getComponentUuid(node, getRootIdByUuid(declaringUuid));
 	    setUuid(node, declaredUuid);
 	    attrs[uuidAttr] = declaredUuid;
+	    var appRootScope = getRootScopeByUuid(declaredUuid);
 	    //console.log("registerDeclaredComponent: declared-uuid", declaredUuid, "declaring-uuid", declaringUuid, "declared-node", node[0], "declaring-component", declaringComponent);
 	    appRootScope.declaredComponentMap[declaredUuid] = declaringComponent;
 	    appRootScope.declaredUuidMap[declaredUuid] = declaringUuid;
@@ -434,23 +474,30 @@ var ui = (function(angular){
 
 
 	function getDeclaringComponentByUuid(declaredUuid) {
+	    var appRootScope = getRootScopeByUuid(declaredUuid);
 	    var declaringComponent = appRootScope.declaredComponentMap[declaredUuid];
-	    if (declaredUuid != 0 && (declaringComponent == null || angular.isUndefined(declaringComponent))) {
+	    if (!isRootUuid(declaredUuid) && (declaringComponent == null || angular.isUndefined(declaringComponent))) {
 	        //console.warn("can't find declaring-component for uuid: ", declaredUuid);
-	        declaringComponent = appRootElement;
+	        declaringComponent = getNode(rootScope);
 	    }
 	    return declaringComponent;
 	}
 
-
-	function getDeclaringScope(declaredComponent) {
-	    var declaringComponent = getDeclaringComponent(declaredComponent);
-	    var declaringScope = declaringComponent.data("$scope");
-	    return declaringScope ? declaringScope : null;
+		
+	function getDeclaringScope(scope) {
+		var parent = scope.$parent;
+		while (parent != null) {
+			if (parent.declaredUuid) {
+				return parent;
+			}
+			parent = parent.$parent;
+		}
+		return null;
 	}
 
 	function getDeclaringScopeByUuid(declaredUuid) {
 	    var declaringScope = null;
+	    var appRootScope = getRootScopeByUuid(declaredUuid);
 	    var declaringUuid = appRootScope.declaredUuidMap[declaredUuid];
 	    if (declaringUuid) {
 	        declaringScope = appRootScope.uuidScopeMap[declaringUuid];
@@ -465,12 +512,10 @@ var ui = (function(angular){
 
 
 	function findDeclaringComponent(node) {
+		// TODO: clarify: this matches also intermediate scopes (ng-repeat, ng-if) 
 	    var context = findParentNode(node, "ng-isolate-scope");
 	    if (context == null) {
-	        //context = findParentNode(node, "ng-scope");
-	    }
-	    if (context == null) {
-	        context = appRootElement;
+	        context = getRootElement(node);
 	    }
 	    return context;
 	}
@@ -487,17 +532,63 @@ var ui = (function(angular){
 	    return null;
 	}
 
+    function findDeclaringComponentByUuid(node) {
+        var uuid = getUuid(node);
+        if (uuid) {
+            return node;
+        }
+        var parent = node.parent();
+        if (parent && parent != node && parent.length > 0) {
+            return findDeclaringComponentByUuid(parent);
+        }
+        return null;
+    }
+
+	function getNodeScope(node) {
+	    var scope = node.data('$isolateScope');
+	    if (scope === undefined) {
+	    	scope =  node.data('$scope');
+	    }
+	    return scope;
+	}
+
+	function getScope(node) {
+		var element = findDeclaringComponentByUuid(node);
+		var scope = getNodeScope(element);
+	    return scope;
+	}
+
+	function getComp(scope) {
+		var compScope = getScope(scope.element);
+		if (compScope == null) {
+			return null;
+		}
+	    return compScope.comp;
+	}
+
+	function getCompInfo(scope) {
+		var compScope = getScope(scope.element);
+		if (compScope == null) {
+			return null;
+		}
+	    return compScope.compInfo;
+	}
+
 	function logScopes() {
-	    logScope(appRootScope, "");
+		for (var i = 0; i &lt; appRootScopes.length; i++) {
+			var appRootScope = appRootScopes[i];
+			logScope(appRootScope, "root-scope #" + i + ": ");
+		}
 	}
 	function logScope(scope, ind) {
 	    var declaringScope = scope.declaringScope;
 	    var declaredNode = scope.element;
 	    var declaringNode = declaringScope ? declaringScope.element : null;
 	    var transcluded = scope.$$transcluded ? "transcluded " : "";
-	    var uiName = scope.comp ? scope.comp.uiName : "?comp?";
+	    var uiName = scope.compInfo ? scope.compInfo.name : (isRootUuid(scope.declaredUuid) ? "&lt;root>" : "?comp?");
+	    var scopeId = declaringScope ? declaringScope.$id : (isRootUuid(scope.declaredUuid) ? undefined : "?$id?");
 	    //console.log(ind, "declared-uuid", scope.declaredUuid, "declaring-uuid", scope.declaringUuid, "declared-node", declaredNode, "declaring-node", declaringNode, "scope: ", scope, "declaring-scope", scope.declaringScope);
-	    console.log(ind, transcluded + uiName, "uuid: ", scope.declaredUuid, "->", scope.declaringUuid, "scope: ", scope.$id, "->", (declaringScope ? declaringScope.$id : "?$id?"), scope, "node: ", declaredNode, "->", declaringNode);
+	    console.log(ind, transcluded + uiName, "uuid: ", scope.declaredUuid, "->", scope.declaringUuid, "scope: ", scope.$id, "->", scopeId, scope, "node: ", declaredNode, "->", declaringNode);
 	    var child = scope.$$childHead;
 	    while (child != null && child !== scope) {
 	        logScope(child, ind + "  ");
@@ -505,74 +596,95 @@ var ui = (function(angular){
 	    }
 	}
 
-
-	function attachDeclaringScopes() {
-	    appRootElement.find('.ng-scope').each(function(i, elem) {
-	        var scope = jQuery(elem).data('$scope');
-	        var uuid = getUuid(elem);
-	        var declaringComponent = getDeclaringComponent(elem);
-	        var declaringUuid = getUuid(declaringComponent);
-	        var declaringScope = declaringComponent.data('$scoope');
-	        //console.log("elem", i,  elem, "declared-uuid", uuid, "declaring-uuid", declaringUuid, declaringComponent, "scope", scope, "declaring-scope", declaringScope);
-	        //appRootScope.uuidScopeMap[uuid] = scope;
-	    });
-
-	    angular.forEach(appRootScope.uuidScopeMap, function(scope, uuid){
-	        var declaringUuid = appRootScope.declaredUuidMap[uuid];
-	        var declaringScope = appRootScope.uuidScopeMap[declaringUuid];
-	        //scope.declaringScope = declaringScope;
-	        //console.log("declared-uuid", uuid,  "declaring-uuid", declaringUuid,  "scope", scope, "declaring-scope", declaringScope);
-	    });
+	function logComps() {
+		for (var i = 0; i &lt; appRootScopes.length; i++) {
+			var appRootScope = appRootScopes[i];
+			logComp(appRootScope, "root-comp #" + i + ": ");
+		}
 	}
-
-	function decorateController(name, $controller, controller) {
-	    return ['$scope', function UiComponentController($scope) {
-	        $scope.comp = {
-	            uiName: name
-	        };
-	        var locals = {
-	            '$scope': $scope,
-	            'comp': $scope.comp
-	        };
-	        $controller(controller, locals);
-	    }];
+	function logComp(scope, ind) {
+	    var declaredNode = scope.element;
+	    var uiName = scope.compInfo ? scope.compInfo.name : (isRootUuid(scope.declaredUuid) ? "&lt;root>" : "?comp?");
+	    var declaredComp = scope.comp;
+	    var declaredUuid = scope.declaredUuid;
+	    if (declaredUuid && !scope.$$transcluded) {
+	    	console.log(ind, uiName, "uuid: ", scope.declaredUuid, "comp: ", declaredComp, "node: ", declaredNode);
+	    }
+	    var child = scope.$$childHead;
+	    while (child != null && child !== scope) {
+	        logComp(child, ind + (declaredUuid ? "  " : ""));
+	        child = child.$$nextSibling;
+	    }
 	}
-	function createComponent(pkg, name, tag, attrs, controller) {
+	
+    function getParent(scope) {
+    	var parentElement = scope.element.parent();
+    	var parent = null;
+    	if (parentElement) {
+        	parent = getScope(parentElement); 
+    	}
+        return parent;
+    }
+	
+    function getChildren(scope) {
+        var children = [];
+        collectChildren(scope, children);
+        return children;
+    }
+
+    function collectChildren(scope, children) {
+        var child = scope.$$childHead;
+        while (child != null && child !== scope) {
+        	if (!child.$$transcluded) {
+	            if (child.declaredUuid) {
+	            	children.push(child);
+	            } else {
+	            	collectChildren(child, children);
+	            }
+        	}
+            child = child.$$nextSibling;
+        }
+        if (scope.$$nextSibling != null && scope.$$nextSibling.$$transcluded) {
+        	collectChildren(scope.$$nextSibling, children);
+        }
+    }
+
+	function createComponent(pkg, name, tag, attrs, controller, requires) {
 	    var ngScope = {};
-	    var module = angular.module(name, []);
+	    var module = angular.module(name, requires || []);
 	    angular.forEach(attrs, function(spec, attr) {
 	        if (spec == '=' || spec == '&' || spec == '~') {
-	            var directiveName = encodeComponentAttrName(attr);
-	            module.directive(directiveName, getAttrDirective(directiveName, attr, spec));
+	           // handled in controller._bindUiAttrs 
 	        } else {
 	            ngScope[attr] = spec;
 	        }
 	    });
-	    module.directive(tag, ['declaringComponentHolder', '$controller', function(declaringComponentHolder, $controller){
+	    module.directive(tag, ['declaringComponentHolder', '$controller', '$injector', function(declaringComponentHolder, $controller, $injector){
 	        return {
 	            restrict: 'E',
 	            replace: true,
 	            transclude: true,
 	            scope: ngScope,
 	            templateUrl: function uiTemplateUrl($compileNode, tAttrs) {
-	                var declaringComponent = registerDeclaredComponent($compileNode, tAttrs);
+	                /*var declaringComponent = */registerDeclaredComponent($compileNode, tAttrs);
 	                var uuid = getUuid($compileNode);
 	                angular.forEach(ngScope, function(value, key){
-	                    if (value != '@') {
-	                        tAttrs[key] = encodeUuid(uuid, tAttrs[key]);
-	                    }
+	                    tAttrs[key] = encodeUuid(uuid, tAttrs[key]);
 	                });
-	                var templateUrl = encodeUuid(uuid, pkg + '/' + name + '.html');
-	                //$compileNode.data('templateUrl', templateUrl);
-	                //$compileNode.data('templateAttr', tAttrs);
-	                //$compileNode.attr('tmplUrl', templateUrl);
+	                var templateUrl = (pkg != '' ? pkg + '/' : '') + name + '.html';
+	                if ($injector.has('uiIntegrationProvider')) {
+	                	var uiIntegrationProvider = $injector.get('uiIntegrationProvider');
+	                	templateUrl = uiIntegrationProvider.getTemplateUrl(pkg, name, tAttrs);
+	                }
+	                templateUrl = encodeUuid(uuid, templateUrl);
 	                //console.log(name + "-template-url: ", $compileNode, tAttrs, "declared-component", getUuid($compileNode), $compileNode, "declaring-component", declaringComponent, getUuid(declaringComponent));
 	                declaringComponentHolder.setDeclaringComponent(templateUrl, $compileNode);
 	                return templateUrl;
 	            },
-	            controller: decorateController(name, $controller, controller)
+	            controller: decorateController(pkg, name, attrs, $controller, controller)
 	        };
 	    }]);
+        return module;
 	}
 
 	function firstUp(name) {
@@ -596,212 +708,308 @@ var ui = (function(angular){
 	function encodeComponentAttrName(attrName) {
 	    return attrName;
 	}
-
-	function getAttrDirective(directiveName, attrName, mode) {
-	    function bindScopes($parse, $log, attr, expr, mode, scope, declaringScope) {
-	        var lastValue;
-	        var comp = ui.getComp(scope);
-	        if (angular.isUndefined(comp)) {
-	            $log.warn("bindScopes: comp not defined for directive ", directiveName,attr, expr, scope, declaringScope);
-	        }
-	        var parentGetOrig = $parse(expr);
-	        var parentSetOrig = parentGetOrig.assign || function() {
-	            // reset the change, or we will throw this exception on every $digest
-	            lastValue = comp[attr] = parentGet(declaringScope);
-	            throw $compileMinErr('nonassign', "Expression '{0}' used with directive '{1}' is non-assignable!",
-	                attr, "directive: " + directiveName);
-	        };
-	        var parentGet = function uiParentGet(scope) {
-	            var value = parentGetOrig(scope);
-	            // $log.log("get ", attr, " in ", scope, " -> ", value);
-	            return value;
-	        };
-	        switch (mode) {
-
-	            case '@': {
-	                log.warn("mode '", mode, "' not supported for attribute '", attrName, "'");
-	            	/*
-	                attrs.$observe(attrName, function(value) {
-	                    scope[scopeName] = value;
-	                  });
-	                  attrs.$$observers[attrName].$$scope = parentScope;
-	                  if( attrs[attrName] ) {
-	                    // If the attribute has been provided then we trigger an interpolation to ensure the value is there for use in the link fn
-	                    scope[scopeName] = $interpolate(attrs[attrName])(parentScope);
-	                  }
-	                  */
-	               // return;
-	                // fall through
-	            }
-	            case '=': {
-	                var parentSet = function uiParentSet(scope, value) {
-	                    parentSetOrig(scope, value);
-	                    $log.log("set ", attr, " to ", value, " in ", scope);
-	                };
-	                lastValue = comp[attr] = parentGet(declaringScope);
-	                var watchFn = function uiCompAttrValueWatch() {
-	                    // $log.log("watch BEG", attr, comp, "declaring-scope", declaringScope);
-	                    var parentValue = parentGet(declaringScope);
-
-	                    if (parentValue !== comp[attr]) {
-	                        // we are out of sync and need to copy
-	                        if (parentValue !== lastValue) {
-	                            // parent changed and it has precedence
-	                            lastValue = comp[attr] = parentValue;
-	                        } else {
-	                            // if the parent can be assigned then do so
-	                            parentSet(declaringScope, parentValue = lastValue = comp[attr]);
-	                        }
-	                    }
-	                    //$log.log("watch END", attr, comp, "declaring-scope", declaringScope, " value ", parentValue);
-	                    return parentValue;
-	                };
-	                watchFn.attr = attr;
-	                watchFn.expr = expr;
-	                scope.$watch(watchFn);
-	                break;
-	            }
-	            case '&': {
-	                // note: this is called in the context of an parsed expression, no scope param here
-	                comp[attr] = function uiParentCallback(locals) {
-	                   // $log.log("callback ", attr, " in scope", scope, "declaring-scope", declaringScope);
-	                    return parentGet(declaringScope, locals);
-	                };
-	                break;
-	            }
-	            case '~': {
-	                comp[attr] = function uiParentFunction() {
-	                    var fn = parentGet(declaringScope);
-	                    var declaringComp = ui.getComp(declaringScope);
-	                    //$log.log("callback-function BEG: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp);
-	                    var result = fn.apply(declaringComp, arguments);
-	                    //$log.log("callback-function END: attr", attr, "expr", expr, " in comp", comp, "declaring-comp", declaringComp, "->", result);
-	                };
-	                break;
-	            }
-	            default: {
-	                throw Error('Invalid isolate scope definition for directive ' +
-	                    directiveName + ': ' + mode);
-	            }
-	        }
-	    }
-	    return ['$parse', '$log', function($parse, $log){
-	        return {
-	            restrict: 'A',
-	            compile: function(tElement, tAttrs, transclude) {
-	                var attr = attrName;
-	                var expr = tAttrs[directiveName];
-	                //console.log("compile-" + attr, tElement, tAttrs, transclude, attr, expr);
-	                return {
-	                    pre: function uiAttrPreLink(scope, iElement, iAttrs, controller) {
-	                        //console.log("link-" + attr + "-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
-	                    },
-	                    post: function uiAttrPostLink(scope, iElement, iAttrs, controller) {
-	                        //console.log("link-" + attr + "-post", scope, tElement, tAttrs, controller);
-	                        var ds = scope.declaringScope;
-	                        bindScopes($parse, $log, attr, expr, mode, scope, ds);
-	                        //var expr = iAttrs[attr];
-	                        //scope.$evalAsync(expr);
-	                    }
-	                };
-	            }
-	        };
-	    }];
+	
+	function compileFns(preFn, postFn) {
+		var compileFn = {
+			pre: preFn,
+			post: postFn
+		};
+		// attach isolateScope flag
+		compileFn.pre.isolateScope = true;
+		compileFn.post.isolateScope = true;
+		return compileFn;
 	}
 
-	uiModule.directive("uid", function(){
+	function decorateController(pkg, name, attrs, $controller, controller) {
+	    return ['$injector', '$scope', '$parse', '$interpolate', '$compile', '$log', function UiComponentController($injector, $scope, $parse, $interpolate, $compile, $log) {
+
+	    	// create component info 
+    		$scope.compInfo = {
+				pkg: pkg,
+	            name: name
+			};
+
+    		// create empty comp instance
+    		$scope.comp = {};
+
+    		// check, for custom component-instance creation
+            if ($injector.has('uiIntegrationProvider')) {
+            	var uiIntegrationProvider = $injector.get('uiIntegrationProvider');
+		        var customComp = uiIntegrationProvider.createComponentInstance(pkg, name, attrs, $scope);
+		        if (customComp) {
+		        	$scope.comp = customComp;
+		        }
+            }
+	    	
+	        
+	        var locals = {
+	            '$scope': $scope,
+	            'comp': $scope.comp
+	        };
+	        //console.log("decorateController:", name, controller);
+	        
+	        // initialize comp
+	        $controller(controller, locals);
+	        
+	        // bind attribute expressions
+	        bindUiAttrs(name, $scope, attrs, $parse, $interpolate, $compile, $log);
+	    }];
+	}
+	
+	function bindUiAttrs(componentName, scope, attrs, $parse, $interpolate, $compile, $log) {
+		var element = scope.element;
+		// NOTE: create a fake Attributes object, since there is no access to "$compile.directive.Attributes(element)"
+		var attributes = {};
+        var comp = getComp(scope);
+        if (angular.isUndefined(comp)) {
+            $log.warn("bindUiAttrs: comp not defined for directive ", directiveName,attr, expr, scope, declaringScope);
+        }
+		//console.log("bind-attr", element, attrs);
+	    angular.forEach(attrs, function(spec, attr) {
+        	var directiveName = snake_case(attr, '-');
+        	// check, if attr is given at the component-tag
+            var expr = element.attr(directiveName);
+        	if (expr) {
+        		//console.log("bind-attr-bind", spec,attr, directiveName, expr);
+        		// use parent here instead of declaringScope to serve ng-repeat scopes as well
+        		var parent = scope.$parent;
+        		attributes[attr] = expr;
+	            bindAttr(componentName, $parse, $interpolate, parent, comp, scope, attributes, spec, attr);
+        	}
+	    });
+	};
+	
+	var SNAKE_CASE_REGEXP = /[A-Z]/g;
+	function snake_case(name, separator){
+	  separator = separator || '_';
+	  return name.replace(SNAKE_CASE_REGEXP, function(letter, pos) {
+	    return (pos ? separator : '') + letter.toLowerCase();
+	  });
+	}
+
+    var LOCAL_REGEXP = /^\s*([@=&])(\??)\s*(\w*)\s*$/;
+
+    function bindAttr(componentName, $parse, $interpolate, scope, isolateScope, realIsolateScope, attrs, definition, scopeName) {
+    	// NOTE: the directive-scope binding was copied from angular's "nodeLinkFn"
+    	//       implementing the "scope" hash of a "Directive Definition Object" as in https://docs.angularjs.org/api/ng/service/$compile 
+    	
+        var match = definition.match(LOCAL_REGEXP) || [],
+        attrName = match[3] || scopeName,
+        optional = (match[2] == '?'),
+        mode = match[1], // @, =, or &
+        lastValue,
+        parentGet, parentSet, compare;
+	
+	    //isolateScope.$$isolateBindings[scopeName] = mode + attrName;
+	
+	    switch (mode) {
+	
+	      case '@':
+	    	 /*
+	        attrs.$observe(attrName, function(value) {
+	          isolateScope[scopeName] = value;
+	        });
+	        attrs.$$observers[attrName].$$scope = scope;
+	        if( attrs[attrName] ) {
+	          // If the attribute has been provided then we trigger an interpolation to ensure
+	          // the value is there for use in the link fn
+	          isolateScope[scopeName] = $interpolate(attrs[attrName])(scope);
+	        }
+	        */
+	    	throw new Error("The '@' scope-binding on attribute '" + attrName + "' for component '" + componentName + "' is not supported for ui-components.");
+	
+	      case '=':
+	        if (optional && !attrs[attrName]) {
+	          return;
+	        }
+	        parentGet = $parse(attrs[attrName]);
+	        if (parentGet.literal) {
+	          compare = equals;
+	        } else {
+	          compare = function(a,b) { return a === b || (a !== a && b !== b); };
+	        }
+	        parentSet = parentGet.assign || function() {
+	          // reset the change, or we will throw this exception on every $digest
+	          lastValue = isolateScope[scopeName] = parentGet(scope);
+	          /* relax binding requirements, bound expressions need not be assignable
+	          throw $compileMinErr('nonassign',
+	              "Expression '{0}' used with directive '{1}' is non-assignable!",
+	              attrs[attrName], newIsolateScopeDirective.name);
+	          */
+	        };
+	        lastValue = isolateScope[scopeName] = parentGet(scope);
+	        realIsolateScope.$watch(function parentValueWatch() {
+	          var parentValue = parentGet(scope);
+	          if (!compare(parentValue, isolateScope[scopeName])) {
+	            // we are out of sync and need to copy
+	            if (!compare(parentValue, lastValue)) {
+	              // parent changed and it has precedence
+	              isolateScope[scopeName] = parentValue;
+	            } else {
+	              // if the parent can be assigned then do so
+	              parentSet(scope, parentValue = isolateScope[scopeName]);
+	            }
+	          }
+	          return lastValue = parentValue;
+	        }, null, parentGet.literal);
+	        break;
+	
+	      case '&':
+	        parentGet = $parse(attrs[attrName]);
+	        isolateScope[scopeName] = function(locals) {
+	          return parentGet(scope, locals);
+	        };
+	        break;
+	
+	      default:
+	    	throw new Error("Invalid scope definition for component '" + componentName + "'." +
+	            " Definition: {... " + scopeName + ": '" + definition + "' ...}");
+	    }
+    }
+    
+    
+	uiModule.directive("uiId", function(){
 	    return {
 	        restrict: 'A',
 	        compile: function(tElement, tAttrs, transclude) {
-	            //console.log("compile-uid", tElement, tAttrs, transclude);
-	            return {
-	                pre: function uiUidPreLink(scope, iElement, iAttrs, controller) {
+	            //console.log("compile-uiId", tElement, tAttrs, transclude);
+	            return compileFns(
+	                function uiUidPreLink(scope, iElement, iAttrs, controller) {
 	                },
-	                post: function uiUidPostLink(scope, iElement, iAttrs, controller) {
-	                    var ds = scope.declaringScope;
-	                    var uid = iAttrs.uid;
-	                    var comp = ui.getComp(scope);
-	                    //console.log("link-uid-post", uid, scope, tElement, tAttrs, controller, "declaring-scope", ds, "comp", comp);
-	                    ds[uid] = comp;
-	                    //console.log("link-uid-post", scope, tElement, tAttrs, controller);
-	                }
-	            };
+	                function uiUidPostLink(scope, iElement, iAttrs, controller) {
+                        function isRepeat(scope) {
+                            return scope !== undefined && scope.$index !== undefined && scope.$first !== undefined && scope.$last !== undefined;
+                        }
+                        if (scope) {
+                            var ds = isRepeat(scope.$parent) ? scope.$parent : scope.declaringScope;
+	                        var uiId = iAttrs.uiId;
+	                        var comp = getComp(scope);
+	                        //console.log("link-uiId-post", uiId, scope, tElement, tAttrs, controller, "declaring-scope", ds, "comp", comp);
+	                        ds[uiId] = comp;
+	                        //console.log("link-uiId-post", scope, tElement, tAttrs, controller);
+	                    }
+                    }
+	            );
 	        }
 	    };
 	});
 
-	uiModule.directive("uiShow", ['$parse', '$animate', function($parse, $animate) {
-	    return {
-	        restrict: 'A',
-	        compile: function(tElement, tAttrs, transclude) {
-	            var expr = tAttrs["uiShow"];
-	            var uuid = getUuid(tElement);
-	            var uiExpr = encodeUuid(uuid, expr);
-	            //console.log("compile-uiShow", tElement, tAttrs, transclude, expr, uuid, uiExpr, $animate);
-	            return {
-	                pre: function(scope, iElement, iAttrs, controller) {
-	                    //console.log("link-uid-pre", scope, tElement, tAttrs, controller, "declaring-scope", ds);
-	                },
-	                post: function(scope, iElement, iAttrs, controller) {
-	                    var ds = scope.declaringScope;
-	                    //console.log("ui-show-post", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds);
-	                    scope.$watch(uiExpr, function uiShowWatcher(value) {
-	                      //  console.log("ui-show-watch", scope, tElement, tAttrs, controller, "uuid", getUuid(tElement), "declaring-scope", getUuid(ds), ds, "->", value);
-	                        if (value) {
-	                            //iElement.removeClass("ng-hide");
-	                        	$animate.removeClass(iElement, 'ng-hide');
-	                        } else {
-	                        	$animate.addClass(iElement, 'ng-hide');
-	                            //iElement.addClass("ng-hide");
-	                        }
-	                        return value;
-	                    });
-	                }
-	            };
-	        }
-	    };
-	}]);
-	
 	/**
+	 * The &lt;tt>uiIntegrationProvider&lt;/tt> interface can be implemented to customize ui-component creation and template resolving.
+	 * The custom implementation needs to be published as 'uiIntegrationProvider' in the [$injector]{@link https://docs.angularjs.org/api/auto/service/$injector}-service of the angular application running the ui-components.
+	 * The ui-components implementations checks the $injector, if the 'uiIntegrationProvider' is available and invokes the necessary callback functions.
+	 *   
+	 * @mixin uiIntegrationProvider
+	 * @version 1.1
+	 */
+	var uiIntegrationProvider = /** @lends uiIntegrationProvider.prototype */{
+		/**
+		 * Create the component instance that can be referenced as &lt;tt>comp&lt;/tt> parameter in the corresponding template of the ui-component.
+		 * 
+		 * By default, an empty object (&lt;tt>{}&lt;/tt>) is created.
+		 * 
+	     * @param {string} pkg - The package of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+	     * @param {string} name - The name of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+	     * @param {map} attrs - The attribute specification of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+		 * @param {Scope} scope - The angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} this component will be bound to.
+		 */
+		createComponentInstance: function(pkg, name, attrs, scope) {
+		},
+		
+	    /**
+	     * Return the template url that should be used to load the html-template for the ui-component denoted by &lt;tt>pkg&lt;/tt> and &lt;tt>name&lt;/tt>.
+	     * This callback method allows ui-component users to implement a custom strategy for loading html-templates.
+	     * See also [templateUrl]{@link https://docs.angularjs.org/api/ng/service/$compile}-function in angulars directive API documentation.
+	     * 
+	     * By default, the ui-components use the following strategy to create template-urls
+	     * &lt;pre>
+	     * templateUrl = (pkg != '' ? pkg + '/' : '') + name + '.html'
+	     * &lt;/pre>
+	     * 
+	     * @param {string} pkg - The package of the ui-component as given in the [ui.component]{@link module:ui.component} funciton.
+	     * @param {string} name - The name of the ui-component as given in the [ui.component]{@link module:ui.component} funciton.
+	     * @param {Attributes} tAttrs - The template [atttributes]{@link https://docs.angularjs.org/api/ng/type/$compile.directive.Attributes} used for angulars template directives.
+	     */
+		getTemplateUrl: function(pkg, name, tAttrs) {
+		}
+	};
+
+	/**
+	 * The &lt;tt>ui&lt;/tt> module provides the access function for creating and traversing ui-components.
+	 *  
 	 * @exports ui
 	 */
 	var exports = {
 		/**
-		 * Creates a ui-component.
-		 * @param {string} pkg - The package for this component. This is denoted by the path to the `component.js` and `component.html` files relative to the application folder.
+		 * Creates a ui-component. For fine grained control on ui-component creation and template resolving see also {@link uiIntegrationProvider}.
+		 * @param {string} pkg - The package for this component. This is denoted by the path to the &lt;tt>&lt;component&gt;.js&lt;/tt> and &lt;tt>&lt;component&gt;.html&lt;/tt> files relative to the application folder.
 		 * @param {string} name - The name of the component. The name is expected to be a valid camel-case javascript identifier starting with an upper-case letter.
 		 * @param {map} attrs - Map of attribute definitions. A map entry consists of the attribute name as key and the binding-specification a value. This follows the convention for 'isolated' scopes as described in section 'Directive Definition Object' for angular [directives]{@link http://docs.angularjs.org/guide/directive}. 
 		 * @param {Controller} controller - A controller function using the array-notation of angulars [$injector]{@link http://docs.angularjs.org/api/AUTO.$injector} service.
-		 * @returns {Module} The ui-component which comes as angular [module]{@link http://docs.angularjs.org/api/angular.Module}.
+		 * @param {string} requires - A list of module-names that are required.
+		 * @returns {Module} The angular [module]{@link http://docs.angularjs.org/api/angular.Module} this ui-component is defined in.
 		 */
-		component: function(pkg, name, attrs, controller) {
+		component: function(pkg, name, attrs, controller, requires) {
 			var tag = firstDown(name);
-		    return createComponent(pkg, name, tag, attrs, controller);
+		    return createComponent(pkg, name, tag, attrs, controller, requires);
 		},
-		/*
-		extend: function(src, dst) {
-		    return angular.extend(dst, src);
-		},
-		*/
+		
 		/**
-		 * Gets the component controller that is declared for the given angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
+		 * Gets the component instance that is declared for the given angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
 		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
+		 * @returns {object} The component instance that is accociated with the given scope.
 		 */
 		getComp: function(scope) {
-		    var comp = scope.comp;
-		    var uuid = scope.declaredUuid;
-		    while (angular.isUndefined(comp) && uuid == scope.$parent.declaredUuid) {
-		        scope = scope.$parent;
-		        comp = scope.comp;
-		    }
-		    return comp;
+		    return getComp(scope);
 		},
+
+		/**
+		 * Gets the closest component scope for the given angular element.  
+		 * @param {DOMElement} element - The [DOM element]{@link https://docs.angularjs.org/api/ng/function/angular.element} wrapped into jQuery.   
+		 * @returns {Scope} The angular [scope]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the closest ui-component.
+		 * 
+		 * @version 1.1
+		 */
+		getScope: function(element) {
+			return getScope(element);
+		},
+		
+		/**
+		 * Gets the parent component-scope for the given component-scope according to the document tree of the rendered page, i. e. after all transcludes are resolved.  
+		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} refering to a ui-component.
+		 * @returns {Scope} The angular [scope]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the parent ui-component in the document tree.
+		 * 
+		 * @version 1.1
+		 */
+        getParent: function(scope) {
+            return getParent(scope);
+        },
+		
+		/**
+		 * Gets the child component-scopes for the given component-scope according to the document tree of the rendered page, i. e. after all transcludes are resolved.  
+		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} refering to a ui-component.
+		 * @returns {array&lt;Scope>} An array of angular [scopes]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the child ui-component in the document tree.
+		 * 
+		 * @version 1.1
+		 */
+        getChildren: function(scope) {
+            return getChildren(scope);
+        },
+
 		/**
 		 * Logs the current scope structure to the browser console. 
 		 * The log contains also debugging information about the declaring and declared components together with their DOM elements. 
 		 */
 		logScopes: function() {
 			logScopes();
+		},
+		
+		/**
+		 * Logs the current component structure to the browser console. 
+		 * The log contains the component data hierarchy. 
+		 */
+		logComps: function() {
+			logComps();
 		}
 	};
 	return exports;
@@ -816,13 +1024,13 @@ var ui = (function(angular){
 </div>
 
 <nav>
-    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ui.html">ui</a></li></ul>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ui.html">ui</a></li></ul><h3>Mixins</h3><ul><li><a href="uiIntegrationProvider.html">uiIntegrationProvider</a></li></ul>
 </nav>
 
 <br clear="both">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Tue Oct 22 2013 23:45:31 GMT+0200 (MESZ)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Mon Aug 18 2014 01:56:40 GMT+0200 (MESZ)
 </footer>
 
 <script> prettyPrint(); </script>

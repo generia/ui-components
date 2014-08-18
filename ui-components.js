@@ -21,6 +21,9 @@
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  * 
  */
+/*
+ * Version: ui-components v1.1
+ */
 var ui = (function(angular){
 
 	var uiModule = angular.module('ui', []);
@@ -482,6 +485,7 @@ var ui = (function(angular){
 
 
 	function findDeclaringComponent(node) {
+		// TODO: clarify: this matches also intermediate scopes (ng-repeat, ng-if) 
 	    var context = findParentNode(node, "ng-isolate-scope");
 	    if (context == null) {
 	        context = getRootElement(node);
@@ -513,17 +517,22 @@ var ui = (function(angular){
         return null;
     }
 
-	function getCompScope(scope) {
-	    var comp = scope.comp;
-	    var uuid = scope.declaredUuid;
-	    while (angular.isUndefined(comp) && scope.$parent != null && uuid == scope.$parent.declaredUuid) {
-	        scope = scope.$parent;
+	function getNodeScope(node) {
+	    var scope = node.data('$isolateScope');
+	    if (scope === undefined) {
+	    	scope =  node.data('$scope');
 	    }
 	    return scope;
 	}
 
+	function getScope(node) {
+		var element = findDeclaringComponentByUuid(node);
+		var scope = getNodeScope(element);
+	    return scope;
+	}
+
 	function getComp(scope) {
-		var compScope = getCompScope(scope);
+		var compScope = getScope(scope.element);
 		if (compScope == null) {
 			return null;
 		}
@@ -531,7 +540,7 @@ var ui = (function(angular){
 	}
 
 	function getCompInfo(scope) {
-		var compScope = getCompScope(scope);
+		var compScope = getScope(scope.element);
 		if (compScope == null) {
 			return null;
 		}
@@ -581,21 +590,35 @@ var ui = (function(angular){
 	    }
 	}
 	
-    function getChildCompScopes(scope) {
-        var childCompScopes = [];
-        collectChildCompScopes(scope, childCompScopes);
-        return childCompScopes;
+    function getParent(scope) {
+    	var parentElement = scope.element.parent();
+    	var parent = null;
+    	if (parentElement) {
+        	parent = getScope(parentElement); 
+    	}
+        return parent;
+    }
+	
+    function getChildren(scope) {
+        var children = [];
+        collectChildren(scope, children);
+        return children;
     }
 
-    function collectChildCompScopes(scope, childCompScopes) {
+    function collectChildren(scope, children) {
         var child = scope.$$childHead;
         while (child != null && child !== scope) {
-            if (child.declaredUuid && !child.$$transcluded) {
-                childCompScopes.push(child);
-            } else {
-                collectChildCompScopes(child, childCompScopes);
-            }
+        	if (!child.$$transcluded) {
+	            if (child.declaredUuid) {
+	            	children.push(child);
+	            } else {
+	            	collectChildren(child, children);
+	            }
+        	}
             child = child.$$nextSibling;
+        }
+        if (scope.$$nextSibling != null && scope.$$nextSibling.$$transcluded) {
+        	collectChildren(scope.$$nextSibling, children);
         }
     }
 
@@ -682,10 +705,10 @@ var ui = (function(angular){
     		// create empty comp instance
     		$scope.comp = {};
 
-    		// check, for custom comp-instance creation
+    		// check, for custom component-instance creation
             if ($injector.has('uiIntegrationProvider')) {
             	var uiIntegrationProvider = $injector.get('uiIntegrationProvider');
-		        var customComp = uiIntegrationProvider.createCompInstance(pkg, name, attrs, $scope);
+		        var customComp = uiIntegrationProvider.createComponentInstance(pkg, name, attrs, $scope);
 		        if (customComp) {
 		        	$scope.comp = customComp;
 		        }
@@ -844,34 +867,106 @@ var ui = (function(angular){
 	    };
 	});
 
-	
 	/**
+	 * The <tt>uiIntegrationProvider</tt> interface can be implemented to customize ui-component creation and template resolving.
+	 * The custom implementation needs to be published as 'uiIntegrationProvider' in the [$injector]{@link https://docs.angularjs.org/api/auto/service/$injector}-service of the angular application running the ui-components.
+	 * The ui-components implementations checks the $injector, if the 'uiIntegrationProvider' is available and invokes the necessary callback functions.
+	 *   
+	 * @mixin uiIntegrationProvider
+	 * @version 1.1
+	 */
+	var uiIntegrationProvider = /** @lends uiIntegrationProvider.prototype */{
+		/**
+		 * Create the component instance that can be referenced as <tt>comp</tt> parameter in the corresponding template of the ui-component.
+		 * 
+		 * By default, an empty object (<tt>{}</tt>) is created.
+		 * 
+	     * @param {string} pkg - The package of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+	     * @param {string} name - The name of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+	     * @param {map} attrs - The attribute specification of the ui-component as given in the [ui.component]{@link module:ui.component} function.
+		 * @param {Scope} scope - The angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} this component will be bound to.
+		 */
+		createComponentInstance: function(pkg, name, attrs, scope) {
+		},
+		
+	    /**
+	     * Return the template url that should be used to load the html-template for the ui-component denoted by <tt>pkg</tt> and <tt>name</tt>.
+	     * This callback method allows ui-component users to implement a custom strategy for loading html-templates.
+	     * See also [templateUrl]{@link https://docs.angularjs.org/api/ng/service/$compile}-function in angulars directive API documentation.
+	     * 
+	     * By default, the ui-components use the following strategy to create template-urls
+	     * <pre>
+	     * templateUrl = (pkg != '' ? pkg + '/' : '') + name + '.html'
+	     * </pre>
+	     * 
+	     * @param {string} pkg - The package of the ui-component as given in the [ui.component]{@link module:ui.component} funciton.
+	     * @param {string} name - The name of the ui-component as given in the [ui.component]{@link module:ui.component} funciton.
+	     * @param {Attributes} tAttrs - The template [atttributes]{@link https://docs.angularjs.org/api/ng/type/$compile.directive.Attributes} used for angulars template directives.
+	     */
+		getTemplateUrl: function(pkg, name, tAttrs) {
+		}
+	};
+
+	/**
+	 * The <tt>ui</tt> module provides the access function for creating and traversing ui-components.
+	 *  
 	 * @exports ui
 	 */
 	var exports = {
 		/**
-		 * Creates a ui-component.
-		 * @param {string} pkg - The package for this component. This is denoted by the path to the `component.js` and `component.html` files relative to the application folder.
+		 * Creates a ui-component. For fine grained control on ui-component creation and template resolving see also {@link uiIntegrationProvider}.
+		 * @param {string} pkg - The package for this component. This is denoted by the path to the <tt>&lt;component&gt;.js</tt> and <tt>&lt;component&gt;.html</tt> files relative to the application folder.
 		 * @param {string} name - The name of the component. The name is expected to be a valid camel-case javascript identifier starting with an upper-case letter.
 		 * @param {map} attrs - Map of attribute definitions. A map entry consists of the attribute name as key and the binding-specification a value. This follows the convention for 'isolated' scopes as described in section 'Directive Definition Object' for angular [directives]{@link http://docs.angularjs.org/guide/directive}. 
 		 * @param {Controller} controller - A controller function using the array-notation of angulars [$injector]{@link http://docs.angularjs.org/api/AUTO.$injector} service.
 		 * @param {string} requires - A list of module-names that are required.
-		 * @returns {Module} The ui-component which comes as angular [module]{@link http://docs.angularjs.org/api/angular.Module}.
+		 * @returns {Module} The angular [module]{@link http://docs.angularjs.org/api/angular.Module} this ui-component is defined in.
 		 */
 		component: function(pkg, name, attrs, controller, requires) {
 			var tag = firstDown(name);
 		    return createComponent(pkg, name, tag, attrs, controller, requires);
 		},
+		
 		/**
-		 * Gets the component controller that is declared for the given angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
+		 * Gets the component instance that is declared for the given angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
 		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope}.
+		 * @returns {object} The component instance that is accociated with the given scope.
 		 */
 		getComp: function(scope) {
 		    return getComp(scope);
 		},
 
-        getChildCompScopes: function(scope) {
-            return getChildCompScopes(scope);
+		/**
+		 * Gets the closest component scope for the given angular element.  
+		 * @param {DOMElement} element - The [DOM element]{@link https://docs.angularjs.org/api/ng/function/angular.element} wrapped into jQuery.   
+		 * @returns {Scope} The angular [scope]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the closest ui-component.
+		 * 
+		 * @version 1.1
+		 */
+		getScope: function(element) {
+			return getScope(element);
+		},
+		
+		/**
+		 * Gets the parent component-scope for the given component-scope according to the document tree of the rendered page, i. e. after all transcludes are resolved.  
+		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} refering to a ui-component.
+		 * @returns {Scope} The angular [scope]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the parent ui-component in the document tree.
+		 * 
+		 * @version 1.1
+		 */
+        getParent: function(scope) {
+            return getParent(scope);
+        },
+		
+		/**
+		 * Gets the child component-scopes for the given component-scope according to the document tree of the rendered page, i. e. after all transcludes are resolved.  
+		 * @param {Scope} scope - An angular [scope]{@link http://docs.angularjs.org/api/ng.$rootScope.Scope} refering to a ui-component.
+		 * @returns {array<Scope>} An array of angular [scopes]{@link https://docs.angularjs.org/api/ng/type/$rootScope.Scope} holding the child ui-component in the document tree.
+		 * 
+		 * @version 1.1
+		 */
+        getChildren: function(scope) {
+            return getChildren(scope);
         },
 
 		/**
@@ -881,9 +976,10 @@ var ui = (function(angular){
 		logScopes: function() {
 			logScopes();
 		},
+		
 		/**
 		 * Logs the current component structure to the browser console. 
-		 * The log contains the component data hierarchie. 
+		 * The log contains the component data hierarchy. 
 		 */
 		logComps: function() {
 			logComps();

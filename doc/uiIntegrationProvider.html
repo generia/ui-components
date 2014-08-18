@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Mixin: uiIntegrationProvider</title>
+    
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+    
+    <h1 class="page-title">Mixin: uiIntegrationProvider</h1>
+    
+    
+
+
+
+<section>
+    
+<header>
+    <h2>
+    uiIntegrationProvider
+    </h2>
+    
+</header>  
+
+<article>
+    <div class="container-overview">
+    
+    
+    
+        
+            <div class="description">The <tt>uiIntegrationProvider</tt> interface can be implemented to customize ui-component creation and template resolving.The custom implementation needs to be published as 'uiIntegrationProvider' in the <a href="https://docs.angularjs.org/api/auto/service/$injector">$injector</a>-service of the angular application running the ui-components.The ui-components implementations checks the $injector, if the 'uiIntegrationProvider' is available and invokes the necessary callback functions.</div>
+        
+        
+        
+<dl class="details">
+    
+        
+    
+    <dt class="tag-version">Version:</dt>
+    <dd class="tag-version"><ul class="dummy"><li>1.1</li></ul></dd>
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui-components.js.html">ui-components.js</a>, <a href="ui-components.js.html#line870">line 870</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+        
+        
+    
+    </div>
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+        <h3 class="subsection-title">Methods</h3>
+        
+        <dl>
+            
+<dt>
+    <h4 class="name" id="createComponentInstance"><span class="type-signature"></span>createComponentInstance<span class="signature">(pkg, name, attrs, scope)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Create the component instance that can be referenced as <tt>comp</tt> parameter in the corresponding template of the ui-component.By default, an empty object (<tt>{}</tt>) is created.
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>pkg</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The package of the ui-component as given in the <a href="module-ui.html#component">ui.component</a> function.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The name of the ui-component as given in the <a href="module-ui.html#component">ui.component</a> function.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>attrs</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">map</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The attribute specification of the ui-component as given in the <a href="module-ui.html#component">ui.component</a> function.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>scope</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Scope</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The angular <a href="http://docs.angularjs.org/api/ng.$rootScope.Scope">scope</a> this component will be bound to.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui-components.js.html">ui-components.js</a>, <a href="ui-components.js.html#line889">line 889</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        
+            
+<dt>
+    <h4 class="name" id="getTemplateUrl"><span class="type-signature"></span>getTemplateUrl<span class="signature">(pkg, name, tAttrs)</span><span class="type-signature"></span></h4>
+    
+    
+</dt>
+<dd>
+    
+    
+    <div class="description">
+        Return the template url that should be used to load the html-template for the ui-component denoted by <tt>pkg</tt> and <tt>name</tt>.This callback method allows ui-component users to implement a custom strategy for loading html-templates.See also <a href="https://docs.angularjs.org/api/ng/service/$compile">templateUrl</a>-function in angulars directive API documentation.By default, the ui-components use the following strategy to create template-urls<pre>templateUrl = (pkg != '' ? pkg + '/' : '') + name + '.html'</pre>
+    </div>
+    
+
+    
+    
+    
+    
+    
+        <h5>Parameters:</h5>
+        
+
+<table class="params">
+    <thead>
+	<tr>
+		
+		<th>Name</th>
+		
+		
+		<th>Type</th>
+		
+		
+		
+		
+		
+		<th class="last">Description</th>
+	</tr>
+	</thead>
+	
+	<tbody>
+	
+	
+        <tr>
+            
+                <td class="name"><code>pkg</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The package of the ui-component as given in the <a href="module-ui.html#component">ui.component</a> funciton.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>name</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">string</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The name of the ui-component as given in the <a href="module-ui.html#component">ui.component</a> funciton.</td>
+        </tr>
+	
+	
+	
+        <tr>
+            
+                <td class="name"><code>tAttrs</code></td>
+            
+            
+            <td class="type">
+            
+                
+<span class="param-type">Attributes</span>
+
+
+            
+            </td>
+            
+            
+            
+            
+            
+            <td class="description last">The template <a href="https://docs.angularjs.org/api/ng/type/$compile.directive.Attributes">atttributes</a> used for angulars template directives.</td>
+        </tr>
+	
+	
+	</tbody>
+</table>
+    
+    
+    
+<dl class="details">
+    
+        
+    
+    
+    
+
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="ui-components.js.html">ui-components.js</a>, <a href="ui-components.js.html#line906">line 906</a>
+    </li></ul></dd>
+    
+    
+    
+    
+    
+    
+    
+</dl>
+
+    
+    
+
+    
+
+    
+    
+    
+    
+    
+    
+    
+</dd>
+
+        </dl>
+    
+    
+    
+    
+    
+</article>
+
+</section>  
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Index</a></h2><h3>Modules</h3><ul><li><a href="module-ui.html">ui</a></li></ul><h3>Mixins</h3><ul><li><a href="uiIntegrationProvider.html">uiIntegrationProvider</a></li></ul>
+</nav>
+
+<br clear="both">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.3.0-dev</a> on Mon Aug 18 2014 01:56:40 GMT+0200 (MESZ)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>
