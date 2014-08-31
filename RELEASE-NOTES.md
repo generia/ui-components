@@ -6,7 +6,8 @@
 2. renamed `uid` directive to a more appropriate `ui-id` directive name
 3. generalized `templateProvider` interface to [uiIntegrationProvider](http://www.generia.de/ui-components/doc/uiIntegrationProvider.html) interface 
 4. refactored component attribute handling to conform to angular's directive isolate scope definitions
-5. upgrade to latest stable angular version [1.2.22](http://code.angularjs.org/1.2.22/angular.js)
+5. upgrade to latest stable angular version [1.2.23](http://code.angularjs.org/1.2.23/angular.js)
+6. improved IE support
 
 ## Version 1.0.1
 
